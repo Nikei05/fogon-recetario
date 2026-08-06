@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#2C422C">
+    <title>Fogón</title>
+    
+    <!-- ÍCONO PERSONALIZADO PARA LA APP EN EL CELULAR (iOS y Android) CON FORZADO DE CACHÉ -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon.png?v=2">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #EAE6DF;
+            color: #2D2D2D;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; min-height: 100dvh; overscroll-behavior: none; 
+        }
+        
+        .app-container {
+            width: 100%; max-width: 410px;
+            background-color: #F4F1EA;
+            /* CAPA DE COLOR AL 80% PARA DIFUMINAR TRAZOS Y MEJORAR LECTURA */
+            background-image: linear-gradient(rgba(244, 241, 234, 0.80), rgba(244, 241, 234, 0.80)), url('textura.webp'); 
+            background-size: 100% 100%, 320px; 
+            background-repeat: no-repeat, repeat;
+            height: 100vh; height: 100dvh; max-height: 840px;
+            padding: 24px; box-sizing: border-box; position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-radius: 32px;
+            overflow-y: auto; display: flex; flex-direction: column;
+        }
+
+        .app-container::-webkit-scrollbar { display: none; }
+
+        @media (max-width: 480px) {
+            body { background-color: #F4F1EA; align-items: flex-start; }
+            .app-container {
+                max-width: 100%; height: 100vh; height: 100dvh; max-height: 100dvh;
+                border-radius: 0; box-shadow: none;
+                padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+                padding-top: calc(16px + env(safe-area-inset-top)); overflow: hidden;
+            }
+            h1 { font-size: 24px !important; }
+            h2 { font-size: 20px !important; margin-bottom: 10px !important; }
+            p { font-size: 14px !important; line-height: 1.5 !important; margin-bottom: 10px !important; }
+            #screen-pasos .img-placeholder { height: 18vh !important; max-height: 145px !important; min-height: 100px !important; }
+            .card-ui { margin-bottom: 12px !important; }
+            .step-header { margin-bottom: 12px !important; }
+            .btn-primary { padding: 14px !important; font-size: 15px !important; margin-top: auto; }
+        }
+
+        .screen { display: none; opacity: 0; transform: translateY(16px) scale(0.99); width: 100%; height: 100%; box-sizing: border-box; position: relative; z-index: 1; }
+        .screen.active { flex: 1; display: flex; flex-direction: column; justify-content: space-between; animation: screenIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .screen.active::-webkit-scrollbar { display: none; }
+        @keyframes screenIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        h1 { font-size: 28px; font-weight: 700; color: #1C281C; margin: 0 0 8px 0; line-height: 1.2; }
+        h2 { font-size: 22px; font-weight: 600; color: #1C281C; margin: 0 0 16px 0; line-height: 1.3; }
+        h3 { color: #5B6B5B; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
+        p { color: #6E756E; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0; }
+        
+        .btn-primary {
+            width: 100%; padding: 16px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 18px;
+            font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px rgba(44, 66, 44, 0.15);
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); text-align: center; box-sizing: border-box; flex-shrink: 0;
+            text-decoration: none; display: inline-block;
+        }
+        .btn-primary:hover { background-color: #3B593B; box-shadow: 0 10px 24px rgba(59, 89, 59, 0.3); transform: translateY(-2px); }
+        .btn-primary:active { transform: scale(0.97) translateY(0); }
+
+        .btn-secondary {
+            width: 100%; padding: 14px; background-color: #E5E0D5; color: #2C422C; border: 1.5px solid #2C422C; border-radius: 18px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-align: center; box-sizing: border-box; flex-shrink: 0;
+            margin-top: 10px; text-decoration: none; display: inline-block;
+        }
+        .btn-secondary:hover { background-color: #D8D2C5; transform: translateY(-1px); }
+
+        /* BOTÓN DEMO DESTACADO Y ANIMADO CON DESTELLO Y LATIDO */
+        .btn-demo-animated {
+            background: linear-gradient(135deg, #F1F5F1 0%, #E2ECE2 100%) !important;
+            border: 2px solid #2C422C !important;
+            color: #2C422C !important;
+            font-weight: 700 !important;
+            margin-top: 0 !important;
+            position: relative;
+            overflow: hidden;
+            animation: demoPulse 2s infinite ease-in-out;
+        }
+
+        .btn-demo-animated::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 25%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.8) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            animation: demoShine 3s infinite ease-in-out;
+        }
+
+        @keyframes demoPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 12px rgba(44, 66, 44, 0.12);
+            }
+            50% {
+                transform: scale(1.025);
+                box-shadow: 0 8px 22px rgba(44, 66, 44, 0.25);
+            }
+        }
+
+        @keyframes demoShine {
+            0% { left: -60%; }
+            22%, 100% { left: 140%; }
+        }
+
+        .btn-back {
+            background: #FFFFFF; border: 1px solid #E5E0D5; width: 44px; height: 44px; border-radius: 14px;
+            font-size: 16px; font-weight: 600; color: #2C422C; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0;
+        }
+        .btn-back:hover { background: #EFECE4; border-color: #3B593B; color: #3B593B; transform: scale(1.05); }
+
+        .card-ui { background: #FFFFFF; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.8); margin-bottom: 16px; position: relative; }
+        .card-ui.locked-card { opacity: 0.85; border: 1.5px dashed #CBB7A5; }
+
+        .img-placeholder {
+            width: 100%; height: 210px; background-color: #E5E0D5; border-radius: 20px; display: flex; align-items: center;
+            justify-content: center; color: #7A827A; font-style: italic; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.02); animation: pulseBg 2s infinite ease-in-out;
+        }
+        .img-placeholder img { width: 100% !important; height: 100% !important; object-fit: cover !important; display: block; }
+        #screen-pasos .img-placeholder { height: 175px; }
+
+        .home-cards-container { display: flex; flex-direction: column; gap: 16px; margin: auto 0; padding: 8px 0; }
+        .home-cards-container .card-ui { display: flex; flex-direction: row; align-items: stretch; padding: 0 !important; margin-bottom: 0; min-height: 140px; cursor: pointer; background: transparent; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .home-cards-container .card-ui:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 16px 36px rgba(44, 66, 44, 0.08); }
+        .home-cards-container .img-placeholder { width: 145px !important; height: auto !important; min-height: 100%; border-radius: 24px 0 0 24px !important; flex-shrink: 0; animation: none; border-right: none; background-color: #E5E0D5; }
+        .home-cards-container .card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left; padding: 18px 16px !important; background-color: #FFFFFF; border-radius: 0 24px 24px 0; border: 1px solid rgba(255,255,255,0.8); border-left: none; }
+
+        /* ESTILOS DE PANTALLA DE COMPRA */
+        .buy-cards-container { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
+        .buy-card { background: #FFFFFF; border-radius: 20px; padding: 20px; border: 1.5px solid #E5E0D5; box-shadow: 0 8px 20px rgba(0,0,0,0.03); transition: all 0.25s ease; position: relative; }
+        .buy-card.featured { border: 2px solid #2C422C; background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F1 100%); }
+        .buy-badge { position: absolute; top: -10px; right: 16px; background: #2C422C; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .buy-card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .buy-card-title { font-size: 18px; font-weight: 700; color: #1C281C; }
+        .buy-card-price { font-size: 22px; font-weight: 700; color: #2C422C; }
+        .buy-card-price span { font-size: 12px; color: #6E756E; font-weight: 500; }
+        .buy-features { list-style: none; padding: 0; margin: 12px 0 16px 0; }
+        .buy-features li { font-size: 13px; color: #5B6B5B; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+        .grid-porciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: auto 0; padding: 10px 0; justify-items: center; }
+        .opcion-btn { background-color: #FFFFFF; border: 1.5px solid #E5E0D5; width: 100%; max-width: 76px; aspect-ratio: 1; border-radius: 50%; font-size: 20px; font-weight: 600; color: #2C422C; cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; align-items: center; justify-content: center; padding: 0; }
+        .opcion-btn:hover { border-color: #3B593B; background-color: #EFECE4; transform: scale(1.08); }
+        .opcion-btn.selected { background-color: #2C422C; border-color: #2C422C; color: #FFFFFF; box-shadow: inset 0 0 0 3px #FFFFFF; font-weight: 700; }
+        
+        #btn-mas { grid-column: span 3; max-width: 100%; aspect-ratio: auto; height: 50px; border-radius: 100px; border: 1.5px dashed #CBB7A5; background-color: rgba(255, 255, 255, 0.4); color: #5B6B5B; font-size: 22px; }
+        #btn-mas:hover { background-color: #EFECE4; border-color: #3B593B; transform: translateY(-2px); }
+        #btn-mas.selected { background-color: #2C422C; border-color: #2C422C; color: #FFFFFF; border-style: solid; box-shadow: inset 0 0 0 3px #FFFFFF; }
+
+        .preview-personas-container { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 70px; margin-top: 12px; padding: 10px; background: rgba(255, 255, 255, 0.3); border-radius: 16px; }
+        .emoji-persona { font-size: 26px; display: inline-block; transform-origin: bottom center; animation: sombreritoSaltarin 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes sombreritoSaltarin { 0% { transform: scale(0) translateY(15px); opacity: 0; } 30% { transform: scale(1.3, 0.7) translateY(0); opacity: 1; } 65% { transform: scale(0.85, 1.35) translateY(-16px); } 85% { transform: scale(1.05, 0.95) translateY(2px); } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+        .pin-container { 
+            text-align: center; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 10px 0;
+        }
+
+        .app-logo-real {
+            width: 190px;
+            max-width: 75%;
+            height: auto;
+            display: block;
+            margin: 0 auto 12px auto;
+            filter: sepia(1) hue-rotate(85deg) saturate(1.8) brightness(0.42);
+        }
+
+        .cooking-pot { 
+            position: relative; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px; 
+            height: 60px; 
+            margin: 0 auto 16px auto; 
+        }
+        .pot-emoji { font-size: 50px; display: inline-block; animation: potBoilRumble 0.22s infinite linear; }
+        .pot-steam { position: absolute; background: rgba(110, 120, 110, 0.55); border-radius: 50%; filter: blur(3px); opacity: 0; animation: potRisingSteam 1.8s infinite ease-out; }
+        .ps1 { width: 14px; height: 14px; bottom: 40px; left: 8px; animation-delay: 0s; }
+        .ps2 { width: 18px; height: 16px; bottom: 43px; left: 21px; animation-delay: 0.6s; }
+        .ps3 { width: 13px; height: 13px; bottom: 40px; left: 36px; animation-delay: 1.2s; }
+
+        .pot-bubble { position: absolute; background: rgba(235, 120, 30, 0.8); border-radius: 50%; opacity: 0; animation: potSoupBubbles 1s infinite ease-in-out; }
+        .pb1 { width: 5px; height: 5px; top: 24px; left: 16px; animation-delay: 0s; }
+        .pb2 { width: 6px; height: 6px; top: 28px; left: 27px; background: rgba(245, 170, 20, 0.9); animation-delay: 0.3s; }
+        .pb3 { width: 4px; height: 4px; top: 22px; left: 38px; animation-delay: 0.6s; }
+
+        .pot-interior-swirl { position: absolute; top: 20px; left: 13px; width: 34px; height: 18px; z-index: 3; animation: soupSpin 1.5s infinite linear; }
+        .soup-bit { position: absolute; font-size: 9px; line-height: 1; }
+        .sb1 { top: -2px; left: 4px; }   
+        .sb2 { bottom: -2px; right: 4px; } 
+
+        @keyframes potBoilRumble { 0% { transform: rotate(-1deg) translateY(0); } 50% { transform: rotate(1deg) translateY(-1px); } 100% { transform: rotate(-1deg) translateY(0); } }
+        @keyframes potRisingSteam { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-30px) scale(1.5); opacity: 0; } }
+        @keyframes potSoupBubbles { 0% { transform: scale(0.4); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: scale(1.2); opacity: 0; } }
+        @keyframes soupSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulseBg { 0%, 100% { background-color: #E5E0D5; } 50% { background-color: #ECE9E2; } }
+
+        .pin-text-desc {
+            font-size: 13.5px; 
+            color: #5B6B5B; 
+            margin: 0 auto 20px auto; 
+            line-height: 1.5; 
+            max-width: 290px;
+            text-align: center;
+        }
+
+        .pin-input { 
+            font-size: 24px; 
+            padding: 14px; 
+            text-align: center; 
+            width: 100%; 
+            max-width: 280px; 
+            border-radius: 18px; 
+            border: 1.5px solid #E5E0D5; 
+            background: #FFFFFF; 
+            box-sizing: border-box; 
+            letter-spacing: 6px; 
+            transition: all 0.2s ease; 
+            color: #2C422C; 
+            font-weight: 600; 
+            margin: 0 auto;
+        }
+        .pin-input:focus { outline: none; border-color: #436143; box-shadow: 0 0 0 4px rgba(67,97,67,0.1); }
+
+        .spicy-pepper {
+            font-size: 20px;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+            transform-origin: center bottom;
+            animation: ajiBailarin 1.2s infinite ease-in-out;
+        }
+
+        @keyframes ajiBailarin {
+            0% { transform: translateY(0) rotate(0deg) scale(1); }
+            15% { transform: translateY(-4px) rotate(-18deg) scale(1.2); }
+            30% { transform: translateY(0) rotate(14deg) scale(1.15); }
+            45% { transform: translateY(-6px) rotate(-12deg) scale(1.25); }
+            60% { transform: translateY(0) rotate(8deg) scale(1.1); }
+            75% { transform: translateY(-2px) rotate(-4deg) scale(1.05); }
+            100% { transform: translateY(0) rotate(0deg) scale(1); }
+        }
+
+        .top-nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 16px; 
+            position: relative; 
+            z-index: 100; 
+            width: 100%;
+        }
+
+        .lang-container { display: flex; justify-content: flex-end; gap: 6px; }
+        .lang-btn { 
+            background: #FFFFFF; border: 1px solid #E5E0D5; padding: 5px 9px; border-radius: 10px; 
+            font-size: 11px; font-weight: 700; color: #5B6B5B; cursor: pointer; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 5px; line-height: 1;
+        }
+        .lang-btn.active { background-color: #2C422C; border-color: #2C422C; color: #FFFFFF; }
+        .lang-flag { width: 16px; height: 12px; border-radius: 2px; display: inline-block; object-fit: cover; }
+
+        .btn-cart-nav {
+            background: #FFFFFF; border: 1px solid #E5E0D5; padding: 5px 10px; border-radius: 10px;
+            font-size: 12px; font-weight: 700; color: #2C422C; cursor: pointer; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 4px; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .btn-cart-nav:hover { background-color: #2C422C; color: #FFFFFF; border-color: #2C422C; transform: translateY(-1px); }
+
+        .lista-proteinas { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; width: 100%; }
+        .proteina-card { background: #FFFFFF; padding: 12px 14px; border-radius: 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border: 1.5px solid #E5E0D5; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; }
+        .proteina-card:hover { border-color: #3B593B; background-color: #EFECE4; transform: translateX(4px); }
+        .proteina-card.selected { border: 2.5px solid #2C422C; background-color: #F1F5F1; padding: 11px 13px; }
+        .proteina-card.selected::before { content: "✓"; display: flex; align-items: center; justify-content: center; position: absolute; left: -6px; top: 50%; transform: translateY(-50%); background-color: #2C422C; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 10; }
+        .proteina-card.selected > div:first-child { margin-left: 10px; }
+
+        .proteina-card .food-icon-wrapper { font-size: 32px !important; width: 48px !important; height: 48px !important; margin-right: 4px; }
+
+        .badge-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .recipe-badge { background: #EFECE4; color: #436143; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+
+        .ingrediente-item { display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; padding: 14px 0; border-bottom: 1px solid #ECE9E2; width: 100%; }
+        .ingrediente-item:last-child { border-bottom: none; }
+        
+        .ingrediente-nombre-icono { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 14px !important; flex: 1; }
+        .ingrediente-icono { font-size: 18px; background: #F4F1EA; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; color: #1C281C; position: relative; flex-shrink: 0; }
+        
+        .food-icon-wrapper { font-size: 22px; position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; animation: flotadoSuaveIcono 4s infinite ease-in-out; }
+        @keyframes flotadoSuaveIcono { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.03); } }
+
+        .steam-effect::after {
+            content: ""; position: absolute; top: -6px; width: 14px; height: 18px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23555555'%3E%3Cpath d='M16 4c-.55 0-1 .45-1 1v3c0 .55.45 1 1 1s1-.45 1-1V5c0-.55-.45-1-1-1zm-4-2c-.55 0-1 .45-1 1v5c0 .55.45 1 1 1s1-.45 1-1V3c0-.55-.45-1-1-1zm8 4c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1s1-.45 1-1V7c0-.55-.45-1-1-1z' opacity='0.7'/%3E%3C/svg%3E");
+            background-size: contain; background-repeat: no-repeat; opacity: 0; filter: blur(0.8px); animation: vaporOscuro 1.6s infinite linear;
+        }
+        @keyframes vaporOscuro { 0% { opacity: 0; transform: scale(0.6) translateY(6px) translateX(0); } 30% { opacity: 0.65; transform: scale(1) translateY(-2px) translateX(-2px); } 60% { opacity: 0.35; transform: scale(1.3) translateY(-10px) translateX(2px); filter: blur(1.5px); } 100% { opacity: 0; transform: scale(0.8) translateY(-18px) translateX(0); } }
+
+        .fish-effect { display: inline-block; animation: pezNandando 0.6s infinite ease-in-out alternate; }
+        @keyframes pezNandando { 0% { transform: rotate(-8deg) scale(1.05); } 100% { transform: rotate(10deg) scale(1.05); } }
+
+        .banana-container { position: relative; font-size: 22px; width: 26px; height: 26px; }
+        .banana-body { position: absolute; left: 0; top: 0; z-index: 2; }
+        .banana-peel { position: absolute; left: 0; top: 0; z-index: 3; clip-path: inset(0 0 0 0); animation: animarPeel 2.5s infinite ease-in-out; transform-origin: bottom right; }
+        @keyframes animarPeel { 0%, 100% { clip-path: inset(0 0 0 0); transform: rotate(0); } 40%, 70% { clip-path: inset(40% 0 0 0); transform: rotate(25deg) translateY(6px); opacity: 0.8; } }
+
+        .yuca-container { position: relative; width: 26px; height: 26px; font-size: 20px; }
+        .yuca-slice { position: absolute; left:0; top:0; }
+        .yuca-s1 { clip-path: inset(0 0 66% 0); animation: sliceTop 2s infinite ease-in-out; }
+        .yuca-s2 { clip-path: inset(33% 0 33% 0); animation: sliceMid 2s infinite ease-in-out; }
+        .yuca-s3 { clip-path: inset(66% 0 0 0); animation: sliceBot 2s infinite ease-in-out; }
+        @keyframes sliceTop { 0%, 100% { transform: translateY(0); } 40%, 70% { transform: translateY(-4px) translateX(-2px); } }
+        @keyframes sliceMid { 0%, 100% { transform: translateX(0); } 40%, 70% { transform: translateX(2px); } }
+        @keyframes sliceBot { 0%, 100% { transform: translateY(0); } 40%, 70% { transform: translateY(4px) translateX(-1px); } }
+
+        .corn-container { position: relative; width:26px; height:26px; font-size: 20px; }
+        .corn-core { position: absolute; left:0; top:0; z-index: 1; }
+        .corn-leaf-l { position: absolute; left:0; top:0; z-index: 2; color: #436143; font-size: 15px; opacity: 0; animation: leafLeft 2.5s infinite ease-in-out; }
+        .corn-leaf-r { position: absolute; left:4px; top:0; z-index: 2; color: #436143; font-size: 15px; opacity: 0; animation: leafRight 2.5s infinite ease-in-out; }
+        @keyframes leafLeft { 0%, 100% { opacity:0; transform: translateX(0) rotate(0); } 30%, 70% { opacity:0.8; transform: translateX(-5px) rotate(-25deg); } }
+        @keyframes leafRight { 0%, 100% { opacity:0; transform: translateX(0) rotate(0); } 30%, 70% { opacity:0.8; transform: translateX(6px) rotate(25deg); } }
+
+        .potato-container { position: relative; width: 26px; height: 26px; font-size: 20px; }
+        .potato-base { position: absolute; left:0; top:0; animation: papaPelandose 3s infinite linear; }
+        .potato-peel-line { position: absolute; width: 22px; height: 3px; border-bottom: 2px dashed #CBB7A5; top: 11px; left: 1px; z-index: 2; opacity: 0; animation: lineaPelado 3s infinite linear; }
+        @keyframes papaPelandose { 0%, 100% { filter: contrast(1) brightness(1); } 45%, 75% { filter: contrast(1.2) brightness(1.2) sepia(0.2); transform: rotate(5deg); } }
+        @keyframes lineaPelado { 0%, 100% { opacity: 0; transform: scaleX(0); } 30%, 70% { opacity: 0.9; transform: scaleX(1.1) rotate(-10deg); } }
+
+        .onion-container { position: relative; width:26px; height:26px; font-size: 20px; }
+        .onion-body { position: absolute; left:0; top:0; z-index: 2; }
+        .onion-layer { position: absolute; left:0; top:0; z-index: 1; opacity: 0; animation: capaCebolla 2s infinite cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes capaCebolla { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.4); filter: blur(1px); } }
+
+        .water-container { font-size: 20px; display: inline-block; animation: gotaCayendo 1.2s infinite cubic-bezier(0.55, 0.055, 0.675, 0.19); }
+        @keyframes gotaCayendo { 0% { transform: translateY(-8px) scaleY(0.8); opacity: 0; } 30% { opacity: 1; transform: translateY(-3px) scaleY(1.1); } 70% { transform: translateY(8px) scaleY(1.3) scaleX(0.7); opacity: 0.9; } 90% { transform: translateY(12px) scale(0.5); opacity: 0; } 100% { transform: translateY(-8px); opacity: 0; } }
+
+        .flour-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .flour-base { font-size: 20px; z-index: 2; animation: dissolveMasa 3s infinite ease-in-out; }
+        .dust-particle { position: absolute; background: #E6BE64; border-radius: 50%; width: 4px; height: 4px; opacity: 0; z-index: 3; }
+        .d1 { animation: shootDust1 3s infinite ease-out; }
+        .d2 { animation: shootDust2 3s infinite ease-out; width: 5px; height: 5px; }
+        .d3 { animation: shootDust3 3s infinite ease-out; }
+        .d4 { animation: shootDust4 3s infinite ease-out; width: 3px; height: 3px; }
+        .d5 { animation: shootDust5 3s infinite ease-out; width: 4px; height: 4px; }
+
+        @keyframes dissolveMasa { 0%, 15% { opacity: 1; filter: blur(0); transform: scale(1); } 25%, 55% { opacity: 0; filter: blur(3px); transform: scale(1.2); } 65%, 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
+        @keyframes shootDust1 { 0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); } 20% { opacity: 0.9; } 35%, 100% { opacity: 0; transform: translate(-12px, -12px) scale(1.8); } }
+        @keyframes shootDust2 { 0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); } 20% { opacity: 0.9; } 35%, 100% { opacity: 0; transform: translate(10px, -8px) scale(1.6); } }
+        @keyframes shootDust3 { 0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); } 20% { opacity: 0.9; } 35%, 100% { opacity: 0; transform: translate(-8px, 10px) scale(2); } }
+        @keyframes shootDust4 { 0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); } 20% { opacity: 0.9; } 35%, 100% { opacity: 0; transform: translate(8px, 8px) scale(1.8); } }
+        @keyframes shootDust5 { 0%, 15% { opacity: 0; transform: translate(0, -14px) scale(1.3); } }
+
+        .onion-chopped-container { position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+        .onion-slice { position: absolute; font-size: 15px; display: inline-block; }
+        .on-s1 { clip-path: inset(0 0 66% 0); animation: onionCutT 1.8s infinite ease-in-out; }
+        .on-s2 { clip-path: inset(33% 0 33% 0); animation: onionCutM 1.8s infinite ease-in-out; }
+        .on-s3 { clip-path: inset(66% 0 0 0); animation: onionCutB 1.8s infinite ease-in-out; }
+        @keyframes onionCutT { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px) translateX(-1px); } }
+        @keyframes onionCutM { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+        @keyframes onionCutB { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px) translateX(1px); } }
+
+        .tomato-chopped-container { position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+        .tomato-piece { position: absolute; font-size: 16px; display: inline-block; }
+        .tom-p1 { clip-path: inset(0 50% 0 0); animation: tomCutL 1.6s infinite ease-in-out; }
+        .tom-p2 { clip-path: inset(0 0 0 50%); animation: tomCutR 1.6s infinite ease-in-out; }
+        @keyframes tomCutL { 0%, 100% { transform: translateX(0) rotate(0deg); } 50% { transform: translateX(-4px) rotate(-20deg); } }
+        @keyframes tomCutR { 0%, 100% { transform: translateX(0) rotate(0deg); } 50% { transform: translateX(4px) rotate(20deg); } }
+
+        .cilantro-chopped-container { position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+        .cilantro-piece { position: absolute; font-size: 16px; display: inline-block; }
+        .cil-p1 { clip-path: inset(0 50% 0 0); animation: cilCutL 1.5s infinite ease-in-out; }
+        .cil-p2 { clip-path: inset(0 0 0 50%); animation: cilCutR 1.5s infinite ease-in-out; }
+        @keyframes cilCutL { 0%, 100% { transform: translate(0,0) rotate(0); } 50% { transform: translate(-3px, -2px) rotate(-15deg); } }
+        @keyframes cilCutR { 0%, 100% { transform: translate(0,0) rotate(0); } 50% { transform: translate(3px, 2px) rotate(15deg); } }
+
+        .veg-mix-container { position: relative; width: 28px; height: 26px; }
+        .veg-item { position: absolute; font-size: 15px; display: inline-block; bottom: 2px; }
+        .veg-1 { left: 0px; animation: vegJump1 1.2s infinite ease-in-out; }
+        .veg-2 { left: 8px; animation: vegJump2 1.2s infinite ease-in-out 0.2s; }
+        .veg-3 { left: 16px; animation: vegJump3 1.2s infinite ease-in-out 0.4s; }
+        @keyframes vegJump1 { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(-15deg); } }
+        @keyframes vegJump2 { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-12px) rotate(15deg); } }
+        @keyframes vegJump3 { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-9px) rotate(-10deg); } }
+
+        .minced-beef-container { position: relative; width: 28px; height: 26px; }
+        .beef-bit { position: absolute; font-size: 13px; display: inline-block; bottom: 2px; }
+        .mb-1 { left: 0px; animation: beefSizzle1 0.8s infinite ease-in-out alternate; }
+        .mb-2 { left: 7px; animation: beefSizzle2 0.8s infinite alternate 0.15s; }
+        .mb-3 { left: 14px; animation: beefSizzle3 0.8s infinite alternate 0.3s; }
+        @keyframes beefSizzle1 { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-4px) scale(1.1); } }
+        @keyframes beefSizzle2 { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-6px) scale(0.95); } }
+        @keyframes beefSizzle3 { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-3px) scale(1.05); } }
+
+        .wheat-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .wheat-base { font-size: 20px; z-index: 2; animation: amasarTrigo 2.5s infinite ease-in-out; }
+        @keyframes amasarTrigo { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.12) rotate(12deg); } }
+
+        .shrimp-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .shrimp-body { font-size: 20px; display: inline-block; animation: peelShrimp 1.8s infinite ease-in-out; }
+        @keyframes peelShrimp { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.2) rotate(-20deg); } }
+
+        .sauce-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .sauce-bottle { font-size: 18px; display: inline-block; animation: tiltBottle 1.8s infinite ease-in-out; z-index: 2; transform-origin: bottom center; }
+        .sauce-drop { position: absolute; width: 4px; height: 6px; border-radius: 50%; opacity: 0; top: 16px; left: 13px; animation: dropSauce 1.8s infinite ease-in; z-index: 1; }
+        .sauce-drop.red { background: #E74C3C; }
+        .sauce-drop.white { background: #FFFFFF; border: 1px solid #BDC3C7; }
+        @keyframes tiltBottle { 0%, 100% { transform: rotate(0deg); } 35%, 65% { transform: rotate(-35deg) translateY(-2px); } }
+        @keyframes dropSauce { 0%, 30% { opacity: 0; transform: translateY(0) scale(0.5); } 45% { opacity: 1; transform: translateY(3px) scale(1); } 75% { opacity: 0; transform: translateY(10px) scale(0.6); } 100% { opacity: 0; } }
+
+        .onion-red-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .onion-red-slice { position: absolute; font-size: 15px; display: inline-block; }
+        .ors-1 { clip-path: inset(0 50% 0 0); animation: cutRedL 1.5s infinite ease-in-out; }
+        .ors-2 { clip-path: inset(0 0 0 50%); animation: cutRedR 1.5s infinite ease-in-out; }
+        @keyframes cutRedL { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-4px, -2px) rotate(-20deg); } }
+        @keyframes cutRedR { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(4px, 2px) rotate(20deg); } }
+
+        .lemon-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .lemon-body { font-size: 18px; display: inline-block; animation: squeezeLemon 1.6s infinite ease-in-out; z-index: 2; transform-origin: center; }
+        .lemon-juice { position: absolute; width: 4px; height: 5px; background: #F1C40F; border-radius: 50%; opacity: 0; top: 16px; animation: juiceDrop 1.6s infinite ease-in; z-index: 1; }
+        @keyframes squeezeLemon { 0%, 100% { transform: scale(1) rotate(0deg); } 40% { transform: scale(0.8, 1.2) rotate(15deg); } 60% { transform: scale(1.15, 0.85) rotate(-10deg); } }
+        @keyframes juiceDrop { 0%, 35% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; } 75% { opacity: 0; transform: translateY(10px); } 100% { opacity: 0; } }
+
+        .cracker-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .cracker-piece { position: absolute; font-size: 15px; display: inline-block; }
+        .crk-1 { clip-path: inset(0 50% 0 0); animation: breakCrkL 2s infinite ease-in-out; }
+        .crk-2 { clip-path: inset(0 0 0 50%); animation: breakCrkR 2s infinite ease-in-out; }
+        @keyframes breakCrkL { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 40%, 70% { transform: translate(-4px, 1px) rotate(-20deg); } }
+        @keyframes breakCrkR { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 40%, 70% { transform: translate(4px, -1px) rotate(20deg); } }
+
+        .coco-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .coco-base { font-size: 18px; z-index: 2; animation: cocoGrind 1.5s infinite ease-in-out alternate; }
+        .flake { position: absolute; background: #FFFFFF; width: 3px; height: 2px; opacity: 0; z-index: 3; border-radius: 1px; }
+        .f1 { animation: shootFlake1 1.5s infinite ease-out; }
+        .f2 { animation: shootFlake2 1.5s infinite ease-out 0.2s; }
+        .f3 { animation: shootFlake3 1.5s infinite ease-out 0.4s; }
+        @keyframes cocoGrind { 0% { transform: rotate(-10deg) scale(1); } 100% { transform: rotate(10deg) scale(0.9); } }
+        @keyframes shootFlake1 { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(-10px, 10px) rotate(45deg); } }
+        @keyframes shootFlake2 { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(0, 12px) rotate(90deg); } }
+        @keyframes shootFlake3 { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(10px, 10px) rotate(-45deg); } }
+
+        .milk-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .milk-glass { font-size: 18px; animation: tiltGlass 2.5s infinite ease-in-out; z-index: 2; transform-origin: bottom center; }
+        .milk-stream { position: absolute; width: 3px; background: #FFFFFF; border-radius: 2px; right: 7px; top: 12px; opacity: 0; animation: pourMilk 2.5s infinite ease-in-out; z-index: 1; }
+        @keyframes tiltGlass { 0%, 100% { transform: rotate(0deg); } 40%, 60% { transform: rotate(35deg); } }
+        @keyframes pourMilk { 0%, 30%, 100% { opacity: 0; height: 0; } 40% { opacity: 1; height: 7px; } 60% { opacity: 1; height: 10px; } }
+
+        .vanilla-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .vanilla-spoon { font-size: 18px; animation: tiltSpoon 2s infinite ease-in-out; z-index: 2; }
+        .vanilla-drop { position: absolute; width: 3px; height: 4px; background: #4a2e15; border-radius: 50%; opacity: 0; top: 14px; left: 7px; animation: dropVanilla 2s infinite ease-in; z-index: 1; }
+        @keyframes tiltSpoon { 0%, 100% { transform: rotate(0deg); } 30%, 70% { transform: rotate(-20deg); } }
+        @keyframes dropVanilla { 0%, 30% { opacity: 0; transform: translateY(0); } 40% { opacity: 1; } 70% { opacity: 0; transform: translateY(10px); } 100% { opacity: 0; } }
+
+        .salt-container { position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .salt-shaker { font-size: 18px; animation: shakeSalt 1.2s infinite; z-index: 2; transform-origin: bottom center; }
+        .salt-grain { position: absolute; width: 2px; height: 2px; background: #FFFFFF; border-radius: 50%; opacity: 0; z-index: 1; }
+        .sg1 { top: 9px; left: 9px; animation: fallSalt1 1.2s infinite; }
+        .sg2 { top: 10px; left: 16px; animation: fallSalt2 1.2s infinite 0.15s; }
+        @keyframes shakeSalt { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(20deg); } 40% { transform: rotate(-20deg); } 60% { transform: rotate(-20deg); } 80% { transform: rotate(-20deg); } }
+        @keyframes fallSalt1 { 0%, 20% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px) translateX(-3px); } }
+        @keyframes fallSalt2 { 0%, 20% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px) translateX(3px); } }
+
+        .timer-container {
+            background-color: #F4F1EA;
+            background-image: linear-gradient(to right, #C2D6C2 0%, #C2D6C2 0%, transparent 0%, transparent 100%);
+            border: 1.5px solid #2C422C;
+            border-radius: 18px;
+            padding: 10px 14px;
+            margin: 12px 0 6px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(44, 66, 44, 0.08);
+            transition: border-color 0.3s ease, transform 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-container.timer-finished {
+            background-color: #C2D6C2 !important;
+            background-image: none !important;
+            border-color: #2C422C;
+            animation: pulseTimerDone 1s infinite ease-in-out;
+        }
+
+        .timer-clock-icon {
+            font-size: 22px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .timer-running .timer-clock-icon {
+            animation: timerTicTac 0.8s infinite ease-in-out alternate;
+        }
+
+        @keyframes timerTicTac {
+            0% { transform: scale(1) rotate(-8deg); }
+            50% { transform: scale(1.18) rotate(0deg); }
+            100% { transform: scale(1) rotate(8deg); }
+        }
+
+        @keyframes pulseTimerDone {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(44, 66, 44, 0.2); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 20px rgba(44, 66, 44, 0.4); }
+        }
+
+        .timer-click-area {
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2;
+        }
+
+        .timer-click-area:hover {
+            background: rgba(44, 66, 44, 0.08);
+        }
+
+        .timer-display {
+            font-family: 'Poppins', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: #2C422C;
+            letter-spacing: 0.5px;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 6px;
+            z-index: 2;
+        }
+
+        .btn-timer {
+            background-color: #2C422C;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-timer:hover {
+            background-color: #3B593B;
+            transform: translateY(-1px);
+        }
+
+        .btn-timer.btn-reset {
+            background-color: #E5E0D5;
+            color: #2C422C;
+        }
+
+        .picker-wheel-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 16px 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .picker-wheel-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .picker-wheel-column span {
+            font-size: 10px;
+            font-weight: 700;
+            color: #5B6B5B;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        .wheel-controls-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arrow-btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 25;
+        }
+
+        .wheel-arrow-btn {
+            background: #FFFFFF;
+            border: 1.5px solid #E5E0D5;
+            color: #2C422C;
+            border-radius: 10px;
+            width: 32px;
+            height: 38px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            user-select: none;
+            position: relative;
+            z-index: 30;
+            touch-action: manipulation;
+        }
+
+        .wheel-arrow-btn:hover {
+            background-color: #2C422C;
+            color: #FFFFFF;
+            border-color: #2C422C;
+            transform: scale(1.08);
+        }
+
+        .wheel-arrow-btn:active {
+            transform: scale(0.95);
+        }
+
+        .wheel-container {
+            width: 75px;
+            height: 120px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 16px;
+            background: #FFFFFF;
+            border: 1.5px solid #E5E0D5;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            cursor: grab;
+            touch-action: pan-y;
+            z-index: 10;
+        }
+
+        .wheel-container:active {
+            cursor: grabbing;
+        }
+
+        .wheel-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .wheel-spacer {
+            height: 40px;
+        }
+
+        .wheel-item {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #8C928C;
+            scroll-snap-align: center;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .wheel-item.selected {
+            color: #2C422C;
+            font-size: 24px;
+        }
+
+        .wheel-selection-overlay {
+            position: absolute;
+            top: 58px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 170px;
+            height: 40px;
+            border-top: 1.5px solid #2C422C;
+            border-bottom: 1.5px solid #2C422C;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .quick-presets {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .preset-btn {
+            background: #FFFFFF;
+            border: 1px solid #E5E0D5;
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #2C422C;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .preset-btn:hover {
+            background: #EFECE4;
+            border-color: #2C422C;
+        }
+
+        .text-animate-up { animation: textGentleFade 0.6s ease-out forwards; }
+        @keyframes textGentleFade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+        .metodo-badge { 
+            background-color: #2C422C; color: #FFFFFF; padding: 8px 16px; border-radius: 12px; 
+            font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; 
+            display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(44, 66, 44, 0.2);
+            animation: badgeEntrada 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), badgeFlotante 3s infinite ease-in-out;
+            transform-origin: center;
+        }
+
+        @keyframes badgeEntrada { 0% { opacity: 0; transform: scale(0.8) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes badgeFlotante { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(44, 66, 44, 0.28); } }
+
+        #desc-paso strong { 
+            background: rgba(67, 97, 67, 0.12); color: #1C281C; padding: 1px 6px; border-radius: 6px; 
+            cursor: pointer; transition: all 0.2s ease; display: inline-block; border: 1px solid rgba(67, 97, 67, 0.25); 
+            user-select: none; font-weight: 700; vertical-align: baseline; margin: 0 1px;
+        }
+        #desc-paso { color: #1C281C; font-size: 14.5px; line-height: 1.7; font-weight: 500; }
+        #desc-paso strong:hover { transform: scale(1.03); background: rgba(67, 97, 67, 0.2); }
+        #desc-paso strong.chip-checked { background: #E5E0D5; color: #8C928C; border-color: #CDCCBF; text-decoration: line-through; transform: scale(0.96); }
+        #desc-paso strong.chip-checked::before { content: "✓ "; font-weight: bold; }
+
+        .progress-bar-bg { width: 100%; max-width: 220px; background-color: #ECE9E2; height: 8px; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { background-color: #436143; height: 100%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .step-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; width: 100%; }
+        .step-count { font-size: 14px; color: #5B6B5B; font-weight: 600; }
+        
+        /* =========================================================
+           ANIMACIÓN DE CONFETI Y JUEGOS PIROTÉCNICOS EN PANTALLA FINAL
+           ========================================================= */
+        .success-icon { 
+            background-color: #EBF2EB; width: 140px; height: 140px; border-radius: 40px; 
+            margin: auto auto 24px auto; display: flex; align-items: center; justify-content: center; 
+            font-size: 64px; box-shadow: 0 10px 30px rgba(67,97,67,0.1); 
+            animation: successPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+            position: relative;
+        }
+        @keyframes successPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+        .confetti-container { position: absolute; width: 100%; height: 100%; pointer-events: none; top: 0; left: 0; }
+        .confetti { position: absolute; width: 8px; height: 8px; border-radius: 50%; opacity: 0; }
+        
+        .c1 { background: #E74C3C; animation: firework1 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1); }
+        .c2 { background: #F1C40F; animation: firework2 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.2s; }
+        .c3 { background: #2ECC71; animation: firework3 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.4s; }
+        .c4 { background: #3498DB; animation: firework4 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.1s; }
+        .c5 { background: #9B59B6; animation: firework5 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.5s; }
+        .c6 { background: #E67E22; animation: firework6 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.3s; }
+        .c7 { background: #1ABC9C; animation: firework7 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.6s; }
+        .c8 { background: #E84393; animation: firework8 1.8s infinite cubic-bezier(0.25, 1, 0.5, 1) 0.25s; }
+
+        @keyframes firework1 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-30px, -50px) scale(1.4); opacity: 0; } }
+        @keyframes firework2 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(160px, -40px) scale(1.5); opacity: 0; } }
+        @keyframes firework3 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-50px, 120px) scale(1.3); opacity: 0; } }
+        @keyframes firework4 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(180px, 110px) scale(1.6); opacity: 0; } }
+        @keyframes firework5 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(65px, -70px) scale(1.8); opacity: 0; } }
+        @keyframes firework6 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(65px, 170px) scale(1.4); opacity: 0; } }
+        @keyframes firework7 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-40px, 30px) scale(1.5); opacity: 0; } }
+        @keyframes firework8 { 0% { transform: translate(70px, 70px) scale(0.2); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(170px, 30px) scale(1.3); opacity: 0; } }
+
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(28, 40, 28, 0.45); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 9999; padding: 24px; box-sizing: border-box; border-radius: 32px; }
+        .modal-card { background: #F4F1EA; border-radius: 24px; padding: 24px; text-align: center; width: 100%; max-width: 310px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18); border: 1px solid rgba(255, 255, 255, 0.7); animation: modalPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        
+        .modal-btn { width: 100%; padding: 14px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
+        .modal-btn:hover { background-color: #3B593B; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size: 32px; margin-bottom: 8px;">👨‍🍳</div>
+            <h4 id="modal-titulo">¡Un momento!</h4>
+            <p id="modal-mensaje">Por favor selecciona una opción.</p>
+            <div style="height: 10px;"></div>
+            <button type="button" class="modal-btn" onclick="cerrarAlerta(event)">Entendido</button>
+        </div>
+    </div>
+
+    <div id="custom-upsell" class="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size: 38px; margin-bottom: 6px;" id="upsell-icon">👑</div>
+            <h4 id="upsell-titulo">Receta Exclusiva</h4>
+            <p style="font-size: 13.5px; margin-bottom: 12px; color: #5B6B5B;" id="upsell-mensaje">Esta receta requiere un nivel superior. Ingresa tu nuevo PIN aquí para desbloquearla:</p>
+            <input type="password" id="input-pin-upgrade" class="pin-input" placeholder="••••" maxlength="4" style="font-size: 20px; padding: 10px; max-width: 160px; margin-top: 0; margin-bottom: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="modal-btn" onclick="intentarUpgrade(event)">Desbloquear Recetas ✨</button>
+                <button type="button" class="modal-btn" style="background-color: transparent; color: #6E756E; box-shadow: none; font-weight: 500; font-size: 13px;" onclick="cerrarUpsell(event)">Regresar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-prompt" class="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size: 32px; margin-bottom: 8px;">🍽️</div>
+            <h4 id="prompt-titulo">¿Cuántas personas?</h4>
+            <input type="number" id="input-prompt-cantidad" class="pin-input" style="font-size: 22px; padding: 12px; max-width: 140px; letter-spacing: normal; margin-top: 14px; margin-bottom: 20px;" min="1" max="99">
+            <div style="display: flex; gap: 12px;">
+                <button type="button" class="modal-btn" style="background-color: #E5E0D5; color: #2C422C;" onclick="cerrarPrompt(event)">Cancelar</button>
+                <button type="button" class="modal-btn" onclick="aceptarPrompt(event)">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-timer-picker" class="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size: 32px; margin-bottom: 4px;">⏱️</div>
+            <h4 id="timer-picker-titulo">Ajustar Tiempo</h4>
+            <p style="font-size: 12px; color: #5B6B5B; margin-bottom: 12px;">Usa las flechas o desliza con el dedo:</p>
+            
+            <div class="quick-presets">
+                <button type="button" class="preset-btn" onclick="fijarPreajusteRueda(0, 30)">30s</button>
+                <button type="button" class="preset-btn" onclick="fijarPreajusteRueda(1, 0)">1m</button>
+                <button type="button" class="preset-btn" onclick="fijarPreajusteRueda(5, 0)">5m</button>
+                <button type="button" class="preset-btn" onclick="fijarPreajusteRueda(10, 0)">10m</button>
+            </div>
+
+            <div class="picker-wheel-wrapper">
+                <div class="wheel-selection-overlay"></div>
+                
+                <div class="picker-wheel-column">
+                    <div class="wheel-controls-group">
+                        <div class="arrow-btn-container">
+                            <button type="button" class="wheel-arrow-btn" onclick="ajustarRuedaPaso('wheel-minutos', -1)" ontouchstart="ajustarRuedaPaso('wheel-minutos', -1)" title="Subir Minutos">▲</button>
+                            <button type="button" class="wheel-arrow-btn" onclick="ajustarRuedaPaso('wheel-minutos', 1)" ontouchstart="ajustarRuedaPaso('wheel-minutos', 1)" title="Bajar Minutos">▼</button>
+                        </div>
+                        <div class="wheel-container" id="wheel-minutos"></div>
+                    </div>
+                    <span>Minutos</span>
+                </div>
+
+                <span style="font-size: 24px; font-weight: 700; color: #2C422C; margin-bottom: 18px;">:</span>
+
+                <div class="picker-wheel-column">
+                    <div class="wheel-controls-group">
+                        <div class="wheel-container" id="wheel-segundos"></div>
+                        <div class="arrow-btn-container">
+                            <button type="button" class="wheel-arrow-btn" onclick="ajustarRuedaPaso('wheel-segundos', -1)" ontouchstart="ajustarRuedaPaso('wheel-segundos', -1)" title="Subir Segundos">▲</button>
+                            <button type="button" class="wheel-arrow-btn" onclick="ajustarRuedaPaso('wheel-segundos', 1)" ontouchstart="ajustarRuedaPaso('wheel-segundos', 1)" title="Bajar Segundos">▼</button>
+                        </div>
+                    </div>
+                    <span>Segundos</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button type="button" class="modal-btn" style="background-color: #E5E0D5; color: #2C422C;" onclick="cerrarPickerTiempo()">Cancelar</button>
+                <button type="button" class="modal-btn" onclick="guardarTiempoPicker()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-pin" class="screen active">
+        <div class="pin-container">
+            <img src="logo.png" alt="Fogón Logo" class="app-logo-real">
+
+            <div class="cooking-pot">
+                <span class="pot-emoji">🍲</span>
+                <div class="pot-steam ps1"></div>
+                <div class="pot-steam ps2"></div>
+                <div class="pot-steam ps3"></div>
+                <div class="pot-bubble pb1"></div>
+                <div class="pot-bubble pb2"></div>
+                <div class="pot-bubble pb3"></div>
+                <div class="pot-interior-swirl">
+                    <span class="soup-bit sb1">🥕</span>
+                    <span class="soup-bit sb2">🌽</span>
+                </div>
+            </div>
+
+            <p class="pin-text-desc">
+                Tu recetario inteligente para calcular ingredientes exactos por porción y guiarte paso a paso.
+            </p>
+
+            <input type="password" id="input-pin" class="pin-input" placeholder="••••" maxlength="4">
+            <p id="error-pin" style="color: #B23B3B; font-size: 14px; font-weight: 500; margin-top: 12px; display: none;">⚠️ PIN incorrecto. Intenta de nuevo.</p>
+        </div>
+        
+        <div style="width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn-primary" onclick="verificarPIN()">Entrar a la App</button>
+            <button type="button" class="btn-secondary btn-demo-animated" onclick="iniciarDemo()">✨ 🍲 Probar Fogón Gratis (Sancocho)</button>
+            <button type="button" class="btn-secondary" style="margin-top: 0;" onclick="irAPaginaCompra()">Comprar Mi Recetario 🛒</button>
+        </div>
+    </div>
+
+    <div id="screen-inicio" class="screen">
+        <div>
+            <div class="top-nav-bar">
+                <button type="button" class="btn-cart-nav" onclick="irAPaginaCompra()" title="Comprar Recetario">🛒 Comprar</button>
+                <div class="lang-container">
+                    <button type="button" class="lang-btn active" id="btn-lang-es" onclick="cambiarIdioma('es')">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Crect width='900' height='300' fill='%23FFCD00'/%3E%3Crect y='300' width='900' height='150' fill='%23003087'/%3E%3Crect y='450' width='900' height='150' fill='%23C8102E'/%3E%3C/svg%3E" alt="Colombia" class="lang-flag"> ES
+                    </button>
+                    <button type="button" class="lang-btn" id="btn-lang-en" onclick="cambiarIdioma('en')">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7410 3900'%3E%3Crect width='7410' height='3900' fill='%23B22234'/%3E%3Cpath d='M0,300H7410M0,900H7410M0,1500H7410M0,2100H7410M0,2700H7410M0,3300H7410' stroke='%23fff' stroke-width='300'/%3E%3Crect width='2964' height='2100' fill='%233C3B6E'/%3E%3C/svg%3E" alt="USA" class="lang-flag"> EN
+                    </button>
+                    <button type="button" class="lang-btn" id="btn-lang-fr" onclick="cambiarIdioma('fr')">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Crect width='300' height='600' fill='%23002654'/%3E%3Crect x='300' width='300' height='600' fill='%23FFFFFF'/%3E%3Crect x='600' width='300' height='600' fill='%23ED2939'/%3E%3C/svg%3E" alt="Francia" class="lang-flag"> FR
+                    </button>
+                </div>
+            </div>
+
+            <!-- BANNER DE MODO DEMO -->
+            <div id="demo-banner" style="display: none; background: #F1F5F1; border: 1.5px solid #2C422C; color: #2C422C; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 14px; margin-bottom: 12px; text-align: center; align-items: center; justify-content: space-between;">
+                <span>🎁 Modo Demo (Sancocho Gratis)</span>
+                <button type="button" style="background:none; border:none; color:#2C422C; font-weight:700; cursor:pointer; text-decoration:underline;" onclick="irAPaginaCompra()">Desbloquear All</button>
+            </div>
+
+            <p style="color: #7A827A; font-weight: 500; font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;" id="lbl-ready">¡Listo para cocinar!</p>
+            <h1 id="lbl-today">¿Qué cocinaremos hoy?</h1>
+            
+            <div class="home-cards-container">
+                <div class="card-ui" id="card-sancocho" onclick="elegirReceta('Sancocho Tradicional', 'normal', event)">
+                    <div class="img-placeholder"><img src="portada-sancocho.webp" alt="Sancocho Tradicional" decoding="async" loading="lazy"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #436143; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;" id="lbl-rec-1">Recomendado</span>
+                        <h2 id="lbl-title-1">Sancocho Tradicional</h2>
+                        <p id="lbl-desc-1">El clásico e indiscutible sabor colombiano en tu mesa.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge">⏱️ 1h 20m</span>
+                            <span class="recipe-badge" id="lbl-badge-easy">👑 Fácil</span>
+                            <span class="recipe-badge">⭐ 4.9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui" id="card-empanadas" onclick="elegirReceta('Empanadas Crujientes', 'normal', event)">
+                    <div class="img-placeholder"><img src="portada-empanadas.webp" alt="Empanadas Crujientes" decoding="async" loading="lazy"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #436143; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;" id="lbl-rec-2">Para Compartir</span>
+                        <h2 id="lbl-title-2">Empanadas Crujientes</h2>
+                        <p id="lbl-desc-2">Doraditas y rellenas con la sazón tradicional de la abuela.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge">⏱️ 1h 10m</span>
+                            <span class="recipe-badge" id="lbl-badge-medium">🍳 Media</span>
+                            <span class="recipe-badge">⭐ 5.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui" id="card-cocadas" onclick="elegirReceta('Cocadas Colombianas', 'normal', event)">
+                    <div class="img-placeholder"><img src="portada-cocadas.webp" alt="Cocadas Colombianas" decoding="async" loading="lazy"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #436143; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;" id="lbl-rec-3">Postre Tradicional</span>
+                        <h2 id="lbl-title-3">Cocadas Colombianas</h2>
+                        <p id="lbl-desc-3">Dulces, doraditas y llenas de puro sabor a coco.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge">⏱️ 30m</span>
+                            <span class="recipe-badge" id="lbl-badge-easy2">👑 Fácil</span>
+                            <span class="recipe-badge">⭐ 4.8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-coctel" onclick="elegirReceta('Coctel de Camarones', 'vip', event)">
+                    <div class="img-placeholder"><img src="portada-coctel.webp" alt="Coctel de Camarones" decoding="async" loading="lazy"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
+                        <h2 id="lbl-title-coctel">Coctel de Camarones</h2>
+                        <p id="lbl-desc-coctel">Fresquito, rosado y costeño con limón, cebolla y galleticas.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-bandeja" onclick="elegirReceta('Bandeja Paisa', 'vip', event)">
+                    <div class="img-placeholder"><img src="portada-bandeja.webp" alt="Bandeja Paisa" decoding="async" loading="lazy"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
+                        <h2 id="lbl-title-bandeja">Bandeja Paisa</h2>
+                        <p id="lbl-desc-bandeja">El plato insignia con frijolitos, chicharrón, huevo y tajada.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-arroz" onclick="elegirReceta('Arroz con Leche', 'vip', event)">
+                    <div class="img-placeholder" style="background-color: #D3C9BC; font-size: 32px;"><img src="portada-arroz.webp" alt="Arroz con Leche" decoding="async" loading="lazy" onerror="this.outerHTML='🍚'"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
+                        <h2 id="lbl-title-arroz">Arroz con Leche</h2>
+                        <p id="lbl-desc-arroz">Cremosito, dulce, con canela en rama y toque de leche condensada.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-ajiaco" onclick="elegirReceta('Ajiaco Santafereño', 'premium', event)">
+                    <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-ajiaco.webp" alt="Ajiaco Santafereño" decoding="async" loading="lazy" onerror="this.outerHTML='🍲'"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
+                        <h2 id="lbl-title-ajiaco">Ajiaco Santafereño</h2>
+                        <p id="lbl-desc-ajiaco">Sopa bogotana con 3 papas, pollo jugoso, guascas, alcaparras y crema.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-paparellena" onclick="elegirReceta('Papa Rellena', 'premium', event)">
+                    <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-papa-rellena.webp" alt="Papa Rellena" decoding="async" loading="lazy" onerror="this.outerHTML='🥔'"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
+                        <h2 id="lbl-title-paparellena">Papa Rellena</h2>
+                        <p id="lbl-desc-paparellena">Masa suave de papa crocante por fuera, con guiso jugoso y huevo.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-ui locked-card" id="card-postretresleches" onclick="elegirReceta('Postre Tres Leches', 'premium', event)">
+                    <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-tres-leches.webp" alt="Postre Tres Leches" decoding="async" loading="lazy" onerror="this.outerHTML='🍰'"></div>
+                    <div class="card-content">
+                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
+                        <h2 id="lbl-title-postretresleches">Postre Tres Leches</h2>
+                        <p id="lbl-desc-postretresleches">Bizcochuelo húmedo y cremosito con el dulzor perfecto.</p>
+                        <div class="badge-group">
+                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div style="height: 10px;"></div> 
+    </div>
+
+    <!-- PANTALLA DE COMPRA Y OPCIONES DE PAGO SIN REVELAR PINS -->
+    <div id="screen-compra" class="screen">
+        <div>
+            <button type="button" class="btn-back" onclick="regresarDeCompra()">←</button>
+            <div style="margin-top: 16px;">
+                <span style="color: #436143; font-weight: 700; font-size: 13px; text-transform: uppercase;">Consigue Tu Acceso</span>
+                <h2 style="margin-top: 4px;">Selecciona tu Nivel</h2>
+                <p style="font-size: 13.5px; color: #6E756E; margin-bottom: 12px;">Elige el plan ideal para desbloquear más recetas y ventajas exclusivas:</p>
+            </div>
+
+            <div class="buy-cards-container">
+                <!-- NIVEL 1 BÁSICO -->
+                <div class="buy-card">
+                    <div class="buy-card-header">
+                        <span class="buy-card-title">Nivel 1 Básico</span>
+                        <span class="buy-card-price">$7 <span>USD</span></span>
+                    </div>
+                    <ul class="buy-features">
+                        <li>✓ Recetario Básico (3 Recetas)</li>
+                        <li>✓ Calculadora inteligente de porciones</li>
+                        <li>✓ Guía de preparación e ingredientes</li>
+                    </ul>
+                    <a href="https://pay.hotmart.com/T107035140V" target="_blank" class="btn-secondary" style="margin-top: 0;">Obtener Nivel 1</a>
+                </div>
+
+                <!-- NIVEL 2 VIP -->
+                <div class="buy-card featured">
+                    <span class="buy-badge">⭐ Recomendado</span>
+                    <div class="buy-card-header">
+                        <span class="buy-card-title">Nivel 2 VIP</span>
+                        <span class="buy-card-price">$12 <span>USD</span></span>
+                    </div>
+                    <ul class="buy-features">
+                        <li>✓ Todo lo del Nivel Básico</li>
+                        <li>✓ Desbloquea Coctel, Bandeja y Arroz</li>
+                        <li>✓ Entrega de clave de acceso VIP tras la compra</li>
+                    </ul>
+                    <a href="https://pay.hotmart.com/T107035140V?off=t0gt8bpb" target="_blank" class="btn-primary">Comprar Nivel 2 VIP</a>
+                </div>
+
+                <!-- NIVEL 3 PREMIUM -->
+                <div class="buy-card">
+                    <div class="buy-card-header">
+                        <span class="buy-card-title">Nivel 3 Premium</span>
+                        <span class="buy-card-price">$19 <span>USD</span></span>
+                    </div>
+                    <ul class="buy-features">
+                        <li>✓ Acceso Total (Las 9 Recetas)</li>
+                        <li>✓ Ajiaco, Papa Rellena y Tres Leches</li>
+                        <li>✓ Incluye PIN de Acceso Total + Material Extra</li>
+                    </ul>
+                    <a href="https://pay.hotmart.com/T107035140V?off=euikiitf" target="_blank" class="btn-secondary" style="margin-top: 0;">Obtener Acceso Total</a>
+                </div>
+            </div>
+        </div>
+        <div style="height: 10px;"></div>
+    </div>
+
+    <div id="screen-personas" class="screen">
+        <div>
+            <button type="button" class="btn-back" onclick="irPantalla('screen-inicio')">←</button>
+            <div style="margin-top: 16px;">
+                <span style="color: #436143; font-weight: 700; font-size: 13px; text-transform: uppercase;" id="lbl-step1">Paso 1 de 3</span>
+                <h2 style="margin-top: 4px;" id="lbl-question1">¿Para cuántas personas cocinarás hoy?</h2>
+            </div>
+            <div id="preview-personas" class="preview-personas-container"></div>
+            <div class="grid-porciones">
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(1, this, event)">1</button>
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(2, this, event)">2</button>
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(3, this, event)">3</button>
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(4, this, event)">4</button>
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(5, this, event)">5</button>
+                <button type="button" class="opcion-btn" onclick="seleccionarPorciones(6, this, event)">6</button>
+                <button type="button" class="opcion-btn" id="btn-mas" onclick="pedirPorciones(this, event)">+</button>
+            </div>
+        </div>
+        <button type="button" class="btn-primary" id="lbl-btn-continue" onclick="validarPorciones()">Continuar</button>
+    </div>
+
+    <div id="screen-proteina" class="screen">
+        <div>
+            <button type="button" class="btn-back" onclick="regresarAPersonas()">←</button>
+            <div style="margin-top: 16px;">
+                <span style="color: #436143; font-weight: 700; font-size: 13px; text-transform: uppercase;" id="lbl-step2">Paso 2 de 3</span>
+                <h2 style="margin-top: 4px;" id="lbl-question2">¿Qué proteína vas a elegir?</h2>
+            </div>
+            <div class="lista-proteinas">
+                <div class="proteina-card" onclick="seleccionarProteina('Pollo (Pernil o Pechuga)', this)">
+                    <div><strong id="prot-1-title">Pollo</strong><br><small style="color: #6E756E;" id="prot-1-desc">Ideal: Pernil jugoso o pechuga en presas</small></div>
+                    <div class="food-icon-wrapper steam-effect">🍗</div>
+                </div>
+                <div class="proteina-card" onclick="seleccionarProteina('Carne de Res (Costilla o Murillo)', this)">
+                    <div><strong id="prot-2-title">Carne de Res</strong><br><small style="color: #6E756E;" id="prot-2-desc">Ideal: Costilla carnuda o murillo con sustancia</small></div>
+                    <div class="food-icon-wrapper steam-effect">🥩</div>
+                </div>
+                <div class="proteina-card" onclick="seleccionarProteina('Cerdo (Costilla o Pulpa)', this)">
+                    <div><strong id="prot-3-title">Cerdo</strong><br><small style="color: #6E756E;" id="prot-3-desc">Ideal: Costilla tierna o trozos de pulpa</small></div>
+                    <div class="food-icon-wrapper steam-effect">🥓</div>
+                </div>
+                <div class="proteina-card" onclick="seleccionarProteina('Pescado (Bagre o Tilapia)', this)">
+                    <div><strong>Pescado</strong><br><small style="color: #6E756E;" id="prot-4-desc">Ideal: Bagre o Tilapia fresca</small></div>
+                    <div class="food-icon-wrapper"><span class="fish-effect">🐟</span></div>
+                </div>
+                <div class="proteina-card" onclick="seleccionarProteina('Mix de vegetales extra', this)">
+                    <div><strong id="prot-5-title">Vegetales Extra</strong><br><small style="color: #6E756E;" id="prot-5-desc">Alternativa ligera y saludable</small></div>
+                    <div class="food-icon-wrapper">
+                        <div class="veg-mix-container">
+                            <span class="veg-item veg-1">🥦</span>
+                            <span class="veg-item veg-2">🥕</span>
+                            <span class="veg-item veg-3">🥬</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn-primary" id="lbl-btn-generate" onclick="validarProteina()">Generar Receta</button>
+    </div>
+
+    <div id="screen-receta" class="screen">
+        <div>
+            <button type="button" class="btn-back" onclick="regresarAProteina()">←</button>
+            <div style="margin-top: 16px;">
+                <h1 style="font-size: 24px;" id="titulo-receta-calculada">Sancocho Tradicional</h1>
+                <div style="display: flex; gap: 8px; margin-top: 6px; margin-bottom: 16px;">
+                    <span style="background: #FFFFFF; color: #3F473F; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; border: 1px solid #E5E0D5;" id="lbl-tiempo">⏱—</span>
+                    <span style="background: #FFFFFF; color: #3F473F; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; border: 1px solid #E5E0D5;" id="lbl-porciones">👥 4 personas</span>
+                </div>
+            </div>
+            <h2 id="lbl-ing-calc" style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #5B6B5B; margin-bottom: 10px;">Ingredientes Calculados</h2>
+            
+            <div id="selector-masa-container" style="display: none; justify-content: center; gap: 8px; margin-bottom: 14px;">
+                <button type="button" id="btn-masa-maiz" class="lang-btn active" onclick="cambiarMasa('maiz')">Masa de Maíz 🌽</button>
+                <button type="button" id="btn-masa-trigo" class="lang-btn" onclick="cambiarMasa('trigo')">Harina de Trigo 🌾</button>
+            </div>
+
+            <div id="lista-ingredientes" class="card-ui" style="padding: 4px 14px;"></div>
+        </div>
+        <button type="button" class="btn-primary" style="margin-top: 12px;" id="lbl-btn-start" onclick="iniciarPasos()">Comenzar a Cocinar ✨</button>
+    </div>
+
+    <div id="screen-pasos" class="screen">
+        <div>
+            <div class="step-header">
+                <button type="button" class="btn-back" onclick="pasoAnterior()">←</button>
+                <div class="progress-bar-bg"><div class="progress-bar-fill" id="barra-progreso"></div></div>
+                <div class="step-count" id="texto-progreso">1/5</div>
+            </div>
+            <div class="card-ui"><div class="img-placeholder" id="imagen-paso"></div></div>
+            <div class="metodo-badge" id="metodo-paso">🔪 Preparación</div>
+            <span style="color: #436143; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 2px;" id="etiqueta-paso">PASO 1</span>
+            <h2 id="titulo-paso" style="font-size: 20px; margin-bottom: 8px;">Prepara los ingredientes</h2>
+            <p id="desc-paso" style="color: #1C281C; font-size: 14.5px; line-height: 1.7; font-weight: 500;"></p>
+            
+            <div id="contenedor-temporizador-paso"></div>
+        </div>
+        <button type="button" class="btn-primary" id="btn-siguiente-paso" onclick="siguientePaso()">Siguiente Paso</button>
+    </div>
+
+    <div id="screen-final" class="screen">
+        <div>
+            <button type="button" class="btn-back" onclick="regresarAPasosFin(event)">←</button>
+            <div style="text-align: center; margin-top: 40px;">
+                <div class="success-icon">
+                    👨‍🍳
+                    <div class="confetti-container">
+                        <div class="confetti c1"></div>
+                        <div class="confetti c2"></div>
+                        <div class="confetti c3"></div>
+                        <div class="confetti c4"></div>
+                        <div class="confetti c5"></div>
+                        <div class="confetti c6"></div>
+                        <div class="confetti c7"></div>
+                        <div class="confetti c8"></div>
+                    </div>
+                </div>
+                <h1 id="lbl-final-title" style="margin-top: 20px;">¡Todo un Logro!</h1>
+                <p style="padding: 0 16px; margin-bottom: 0;" id="desc-final">Tu receta hecha en tu Fogón quedó espectacular. ¡A disfrutar caliente!</p>
+            </div>
+        </div>
+        <button type="button" class="btn-primary" id="lbl-btn-menu" onclick="reiniciarApp()">Volver al Menú</button>
+    </div>
+
+</div>
+
+<!-- ENLACE DE SCRIPT CON CACHE BUSTING v3.0 -->
+<script src="recetas.js?v=3.0"></script>
+
+</body>
+</html>

@@ -1,0 +1,2140 @@
+/* LÓGICA DE NAVEGACIÓN DESDE LA PANTALLA DE BIENVENIDA */
+function irAAccesoPIN() {
+    irPantalla('screen-pin');
+    setTimeout(function() {
+        var inputPin = document.getElementById('input-pin');
+        if (inputPin) inputPin.focus();
+    }, 100);
+}
+
+function irAPaginaCompra() {
+    // AQUÍ PODRÁS CAMBIAR ESTA URL CUANDO TENGAS LA PÁGINA DE VENTA LISTA
+    var urlCompra = "https://tupaginadecompra.com"; 
+    
+    if (urlCompra && urlCompra !== "https://tupaginadecompra.com") {
+        window.open(urlCompra, '_blank');
+    } else {
+        mostrarAlerta(
+            idiomaActual === 'es' ? "¡Próximamente! Estaremos activando el enlace directo a la tienda oficial de Fogón." : (idiomaActual === 'fr' ? "Bientôt disponible ! Nous activerons le lien direct vers la boutique officielle de Fogón." : "Coming soon! We will activate the direct link to the official Fogón shop."),
+            idiomaActual === 'es' ? "Comprar Recetario" : (idiomaActual === 'fr' ? "Acheter le Livre" : "Buy Recipe Book")
+        );
+    }
+}
+
+/* PINES Y NIVELES DE ACCESO ACTUALIZADOS (4 DÍGITOS DIVERSIFICADOS) */
+const PIN_NORMAL = "4821";
+const PIN_VIP = "7395";
+const PIN_PREMIUM = "9142";
+const PIN_MAESTRO = "2026";
+
+let nivelUsuario = 1;
+let idiomaActual = "es"; 
+let tipoMasa = "maiz"; 
+let preparandoAji = false;
+let preparandoPatacon = false;
+let preparandoChimichurri = false;
+let porcionesElegidas = 0; 
+let proteinaElegida = ""; 
+let pasoActual = 0; 
+let pasosActivos = [];
+let recetaElegida = "Sancocho Tradicional";
+let nivelRequeridoEnModal = "normal";
+
+/* LÓGICA DEL TEMPORIZADOR Y BARRA DE PROGRESO DE FONDO CON COLOR MENTÓN MÁS OSCURO */
+let timerInterval = null;
+let timerTiempoSugeridoInicial = 0;
+let timerTiempoTotal = 0;
+let timerTiempoRestante = 0;
+let timerEnEjecucion = false;
+let timerTerminado = false;
+let audioCtxGlobal = null;
+
+function obtenerContextoAudio() {
+    if (!audioCtxGlobal) {
+        audioCtxGlobal = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtxGlobal.state === 'suspended') {
+        audioCtxGlobal.resume();
+    }
+    return audioCtxGlobal;
+}
+
+function verificarPIN() {
+    var pinIngresado = document.getElementById('input-pin').value;
+    if (pinIngresado === PIN_NORMAL) {
+        nivelUsuario = 1;
+        actualizarEstilosTarjetas();
+        irPantalla('screen-inicio');
+    } else if (pinIngresado === PIN_VIP) {
+        nivelUsuario = 2;
+        actualizarEstilosTarjetas();
+        irPantalla('screen-inicio');
+    } else if (pinIngresado === PIN_PREMIUM || pinIngresado === PIN_MAESTRO) {
+        nivelUsuario = 3;
+        actualizarEstilosTarjetas();
+        irPantalla('screen-inicio');
+    } else {
+        var msg = idiomaActual === 'es' ? "El PIN ingresado es incorrecto. Intenta de nuevo." : (idiomaActual === 'fr' ? "Le code PIN est incorrect. Réessayez." : "The entered PIN is incorrect. Try again.");
+        var title = idiomaActual === 'es' ? "Acceso Denegado" : (idiomaActual === 'fr' ? "Accès Refusé" : "Access Denied");
+        mostrarAlerta(msg, title);
+    }
+}
+
+function actualizarEstilosTarjetas() {
+    var recetasVIP = ['card-coctel', 'card-bandeja', 'card-arroz'];
+    recetasVIP.forEach(function(id) {
+        var card = document.getElementById(id);
+        if (card) {
+            if (nivelUsuario >= 2) {
+                card.classList.remove('locked-card');
+                var badge = card.querySelector('.badge-lock');
+                if (badge) { 
+                    badge.innerText = idiomaActual === 'es' ? "⭐ Desbloqueada" : (idiomaActual === 'fr' ? "⭐ Débloquée" : "⭐ Unlocked"); 
+                    badge.style.background = "#EFECE4"; 
+                    badge.style.color = "#436143"; 
+                }
+            } else {
+                card.classList.add('locked-card');
+            }
+        }
+    });
+
+    var recetasPremium = ['card-ajiaco', 'card-paparellena', 'card-postretresleches'];
+    recetasPremium.forEach(function(id) {
+        var card = document.getElementById(id);
+        if (card) {
+            if (nivelUsuario >= 3) {
+                card.classList.remove('locked-card');
+                var badge = card.querySelector('.badge-lock');
+                if (badge) { 
+                    badge.innerText = idiomaActual === 'es' ? "💎 Desbloqueada" : (idiomaActual === 'fr' ? "💎 Débloquée" : "💎 Unlocked"); 
+                    badge.style.background = "#EFECE4"; 
+                    badge.style.color = "#436143"; 
+                }
+            } else {
+                card.classList.add('locked-card');
+            }
+        }
+    });
+}
+
+function mostrarAlerta(mensaje, titulo) {
+    document.getElementById('modal-titulo').innerText = titulo || (idiomaActual === 'es' ? "¡Un momento!" : (idiomaActual === 'fr' ? "Un moment !" : "Just a moment!"));
+    document.getElementById('modal-mensaje').innerText = mensaje;
+    document.getElementById('custom-modal').style.display = 'flex';
+}
+
+function cerrarAlerta(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    document.getElementById('custom-modal').style.display = 'none';
+}
+
+function cerrarUpsell(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    document.getElementById('custom-upsell').style.display = 'none';
+    var inp = document.getElementById('input-pin-upgrade');
+    if (inp) inp.value = "";
+}
+
+function intentarUpgrade(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    var pinVal = document.getElementById('input-pin-upgrade').value;
+    
+    if (nivelRequeridoEnModal === 'premium') {
+        if (pinVal === PIN_PREMIUM || pinVal === PIN_MAESTRO) {
+            nivelUsuario = 3;
+            actualizarEstilosTarjetas();
+            cerrarUpsell();
+            mostrarAlerta(
+                idiomaActual === 'es' ? "¡Has desbloqueado el Paquete Premium Completo (9 Recetas)!" : (idiomaActual === 'fr' ? "Vous avez débloqué le Pack Premium Complet !" : "You unlocked Full Premium Package (9 Recipes)!"),
+                idiomaActual === 'es' ? "¡Nivel Premium!" : (idiomaActual === 'fr' ? "Niveau Premium !" : "Premium Unlocked!")
+            );
+        } else {
+            cerrarUpsell();
+            var alertMsg = idiomaActual === 'es' ? "PIN no válido para el nivel Premium. Verifica tu clave." : "Invalid PIN for Premium level. Please check your key.";
+            var alertTitle = idiomaActual === 'es' ? "PIN Incorrecto" : "Incorrect PIN";
+            mostrarAlerta(alertMsg, alertTitle);
+        }
+    } 
+    else if (nivelRequeridoEnModal === 'vip') {
+        if (pinVal === PIN_VIP || pinVal === PIN_PREMIUM || pinVal === PIN_MAESTRO) {
+            nivelUsuario = (pinVal === PIN_PREMIUM || pinVal === PIN_MAESTRO) ? 3 : 2;
+            actualizarEstilosTarjetas();
+            cerrarUpsell();
+            mostrarAlerta(
+                nivelUsuario === 3 
+                ? (idiomaActual === 'es' ? "¡Has desbloqueado el Paquete Premium Completo!" : "You unlocked Premium Package!")
+                : (idiomaActual === 'es' ? "¡Has desbloqueado el Paquete VIP (6 Recetas)!" : "You unlocked VIP Package (6 Recipes)!"),
+                idiomaActual === 'es' ? "¡Recetas Desbloqueadas!" : "Recipes Unlocked!"
+            );
+        } else {
+            cerrarUpsell();
+            var alertMsgVIP = idiomaActual === 'es' ? "PIN no válido para el nivel VIP. Verifica tu clave." : "Invalid PIN for VIP level. Please check your key.";
+            var alertTitleVIP = idiomaActual === 'es' ? "PIN Incorrecto" : "Incorrect PIN";
+            mostrarAlerta(alertMsgVIP, alertTitleVIP);
+        }
+    }
+}
+
+function cambiarIdioma(lang) {
+    idiomaActual = lang;
+    document.querySelectorAll('.lang-btn').forEach(function(btn) { btn.classList.remove('active'); });
+    if (lang === 'es') document.getElementById('btn-lang-es').classList.add('active');
+    if (lang === 'en') document.getElementById('btn-lang-en').classList.add('active');
+    if (lang === 'fr') document.getElementById('btn-lang-fr').classList.add('active');
+
+    traducirInterfaz();
+
+    if (document.getElementById('screen-receta').classList.contains('active')) {
+        if (preparandoAji) { irAIngredientesAji(); } 
+        else if (preparandoPatacon) { irAIngredientesPatacon(); }
+        else if (preparandoChimichurri) { irAIngredientesChimichurri(); }
+        else { generarReceta(); }
+    } else if (document.getElementById('screen-pasos').classList.contains('active')) {
+        renderizarPaso();
+    }
+}
+
+function cambiarMasa(tipo) {
+    tipoMasa = tipo;
+    document.getElementById('btn-masa-maiz').classList.toggle('active', tipo === 'maiz');
+    document.getElementById('btn-masa-trigo').classList.toggle('active', tipo === 'trigo');
+    generarReceta();
+}
+
+function traducirInterfaz() {
+    var es = {
+        "lbl-ready": "¡Listo para cocinar!", "lbl-today": "¿Qué cocinaremos hoy?",
+        "lbl-rec-1": "Recomendado", "lbl-title-1": "Sancocho Tradicional", "lbl-desc-1": "El clásico e indiscutible sabor colombiano en tu mesa.", "lbl-badge-easy": "👑 Fácil",
+        "lbl-rec-2": "Para Compartir", "lbl-title-2": "Empanadas Crujientes", "lbl-desc-2": "Doraditas y rellenas con la sazón tradicional de la abuela.", "lbl-badge-medium": "🍳 Media",
+        "lbl-rec-3": "Postre Tradicional", "lbl-title-3": "Cocadas Colombianas", "lbl-desc-3": "Dulces, doraditas y llenas de puro sabor a coco.", "lbl-badge-easy2": "👑 Fácil",
+        "lbl-title-coctel": "Coctel de Camarones", "lbl-desc-coctel": "Fresquito, rosado y costeño con limón, cebolla y galleticas.",
+        "lbl-title-bandeja": "Bandeja Paisa", "lbl-desc-bandeja": "El plato insignia con frijolitos, chicharrón, huevo y tajada.",
+        "lbl-title-arroz": "Arroz con Leche", "lbl-desc-arroz": "Cremosito, dulce, con canela en rama y toque de leche condensada.",
+        "lbl-title-ajiaco": "Ajiaco Santafereño", "lbl-desc-ajiaco": "Sopa bogotana con 3 papas, pollo jugoso, guascas, alcaparras y crema.",
+        "lbl-title-paparellena": "Papa Rellena", "lbl-desc-paparellena": "Masa suave de papa crocante por fuera, con guiso jugoso y huevo.",
+        "lbl-title-postretresleches": "Postre Tres Leches", "lbl-desc-postretresleches": "Bizcochuelo húmedo y cremosito con el dulzor perfecto.",
+        "lbl-step1": "Paso 1 de 3", "lbl-question1": "¿Para cuántas personas cocinarás hoy?", "lbl-btn-continue": "Continuar",
+        "lbl-step2": "Paso 2 de 3", "lbl-question2": "¿Qué proteína vas a elegir?", "lbl-btn-generate": "Generar Receta",
+        "prot-1-title": "Pollo", "prot-1-desc": "Ideal: Pernil jugoso o pechuga en presas",
+        "prot-2-title": "Carne de Res", "prot-2-desc": recetaElegida === "Sancocho Tradicional" ? "Ideal: Costilla carnuda o murillo con sustancia" : "Ideal: Carne de res molida premium",
+        "prot-3-title": "Cerdo", "prot-3-desc": "Ideal: Costilla tierna o trozos de pulpa",
+        "prot-4-title": "Pescado", "prot-4-desc": "Ideal: Bagre o Tilapia fresca",
+        "prot-5-title": "Vegetales Extra", "prot-5-desc": "Alternativa ligera y saludable",
+        "lbl-ing-calc": "Ingredientes Calculados", "lbl-btn-start": "Comenzar a Cocinar ✨", "lbl-final-title": "¡Todo un Logro!", "lbl-btn-menu": "Volver al Menú"
+    };
+
+    var en = {
+        "lbl-ready": "Ready to cook!", "lbl-today": "What are we cooking today?",
+        "lbl-rec-1": "Recommended", "lbl-title-1": "Traditional Sancocho", "lbl-desc-1": "The classic and undeniable Colombian flavor at your table.", "lbl-badge-easy": "👑 Easy",
+        "lbl-rec-2": "To Share", "lbl-title-2": "Crispy Empanadas", "lbl-desc-2": "Golden and stuffed with grandma's traditional seasoning.", "lbl-badge-medium": "🍳 Medium",
+        "lbl-rec-3": "Traditional Dessert", "lbl-title-3": "Colombian Cocadas", "lbl-desc-3": "Sweet, golden, and full of pure coconut flavor.", "lbl-badge-easy2": "👑 Easy",
+        "lbl-title-coctel": "Shrimp Cocktail", "lbl-desc-coctel": "Fresh, pink coastal cocktail with lime, onion, and crackers.",
+        "lbl-title-bandeja": "Paisa Tray", "lbl-desc-bandeja": "Flagship dish with red beans, pork belly, fried egg, and plantain.",
+        "lbl-title-arroz": "Rice Pudding", "lbl-desc-arroz": "Creamy, sweet, infused with cinnamon stick and condensed milk.",
+        "lbl-title-ajiaco": "Ajiaco Soup", "lbl-desc-ajiaco": "Traditional Bogota soup with 3 potato varieties, chicken, and capers.",
+        "lbl-title-paparellena": "Stuffed Potato", "lbl-desc-paparellena": "Crispy mashed potato ball stuffed with savory beef and egg.",
+        "lbl-title-postretresleches": "Tres Leches Cake", "lbl-desc-postretresleches": "Moist and creamy sponge cake infused with three milks.",
+        "lbl-step1": "Step 1 of 3", "lbl-question1": "How many people are you cooking for today?", "lbl-btn-continue": "Continue",
+        "lbl-step2": "Step 2 of 3", "lbl-question2": "Which protein will you choose?", "lbl-btn-generate": "Generate Recipe",
+        "prot-1-title": "Chicken", "prot-1-desc": "Ideal: Juicy drumstick or breast pieces",
+        "prot-2-title": "Beef", "prot-2-desc": recetaElegida === "Sancocho Tradicional" ? "Ideal: Meaty rib or flavorful shank" : "Ideal: Premium ground beef",
+        "prot-3-title": "Pork", "prot-3-desc": "Ideal: Tender ribs or loin chunks",
+        "prot-4-title": "Fish", "prot-4-desc": "Ideal: Fresh catfish or tilapia",
+        "prot-5-title": "Extra Veggies", "prot-5-desc": "A light and healthy alternative",
+        "lbl-ing-calc": "Calculated Ingredients", "lbl-btn-start": "Start Cooking ✨", "lbl-final-title": "Quite an Achievement!", "lbl-btn-menu": "Back to Menu"
+    };
+
+    var fr = {
+        "lbl-ready": "Prêt a cuisiner !", "lbl-today": "Que cuisinons-nous aujourd'hui ?",
+        "lbl-rec-1": "Recommandé", "lbl-title-1": "Sancocho Traditionnel", "lbl-desc-1": "Le goût colombien classique et incontestable sur votre table.", "lbl-badge-easy": "👑 Facile",
+        "lbl-rec-2": "À Partager", "lbl-title-2": "Empanadas Croupillantes", "lbl-desc-2": "Dorées et farcies avec l'assaisonnement traditionnel de grand-mère.", "lbl-badge-medium": "🍳 Moyen",
+        "lbl-rec-3": "Dessert Traditionnel", "lbl-title-3": "Cocadas Colombiennes", "lbl-desc-3": "Douces, dorées et pleines de pure saveur de coco.", "lbl-badge-easy2": "👑 Facile",
+        "lbl-title-coctel": "Cocktail de Crevettes", "lbl-desc-coctel": "Frais, rose et côtier avec citron vert, oignon et biscuits.",
+        "lbl-title-bandeja": "Bandeja Paisa", "lbl-desc-bandeja": "Le plat emblématique avec haricots rouges, poitrine de porc, œuf e banane.",
+        "lbl-title-arroz": "Riz au Lait", "lbl-desc-arroz": "Onctueux, doux, infusé au bâton de cannelle et lait condensé.",
+        "lbl-title-ajiaco": "Soupe Ajiaco", "lbl-desc-ajiaco": "Soupe traditionnelle de Bogota aux 3 pommes de terre, poulet et câpres.",
+        "lbl-title-paparellena": "Pomme de Terre Farcie", "lbl-desc-paparellena": "Boule de purée croustillante farcie au bœuf haché et œuf.",
+        "lbl-title-postretresleches": "Gâteau Tres Leches", "lbl-desc-postretresleches": "Gâteau moelleux imbibé de trois laits et très crémeux.",
+        "lbl-step1": "Étape 1 sur 3", "lbl-question1": "Pour combien de personnes cuisinez-vous aujourd'hui ?", "lbl-btn-continue": "Continuer",
+        "lbl-step2": "Étape 2 sur 3", "lbl-question2": "Quelle protéine allez-vous choisir ?", "lbl-btn-generate": "Générer la Recette",
+        "prot-1-title": "Poulet", "prot-1-desc": "Idéal : Pilon jus de poulet ou blanc",
+        "prot-2-title": "Bœuf", "prot-2-desc": recetaElegida === "Sancocho Tradicional" ? "Idéal : Côte de bœuf savoureuse" : "Idéal : Bœuf haché premium",
+        "prot-3-title": "Porc", "prot-3-desc": "Idéal : Travers de porc tendres",
+        "prot-4-title": "Poisson", "prot-4-desc": "Idéal : Poisson chat frais ou tilapia",
+        "prot-5-title": "Légumes Extra", "prot-5-desc": "Alternative légère et saine",
+        "lbl-ing-calc": "Ingrédients Calculés", "lbl-btn-start": "Commencer à Cuisiner ✨", "lbl-final-title": "C'est una Réussite !", "lbl-btn-menu": "Retour au Menu"
+    };
+
+    var t = idiomaActual === 'es' ? es : (idiomaActual === 'fr' ? fr : en);
+    for (var id in t) {
+        var el = document.getElementById(id);
+        if (el) el.innerText = t[id];
+    }
+
+    actualizarEstilosTarjetas();
+}
+
+function getProteinaNombre() {
+    var protLC = proteinaElegida.toLowerCase();
+    if (protLC.includes('pollo')) return idiomaActual === 'es' ? "pollo desmechado" : (idiomaActual === 'fr' ? "poulet effiloché" : "shredded chicken");
+    if (protLC.includes('carne') || protLC.includes('res')) {
+        if (recetaElegida === "Empanadas Crujientes" || recetaElegida === "Papa Rellena") {
+            return idiomaActual === 'es' ? "carne de res molida" : (idiomaActual === 'fr' ? "bœuf haché" : "ground beef");
+        } else {
+            return idiomaActual === 'es' ? "carne de res" : (idiomaActual === 'fr' ? "bœuf" : "beef");
+        }
+    }
+    if (protLC.includes('cerdo')) return idiomaActual === 'es' ? "cerdo" : (idiomaActual === 'fr' ? "porc" : "pork");
+    if (protLC.includes('pescado')) return idiomaActual === 'es' ? "pescado" : (idiomaActual === 'fr' ? "poisson" : "fish");
+    if (protLC.includes('vegetales')) return idiomaActual === 'es' ? "vegetales extra" : (idiomaActual === 'fr' ? "légumes extra" : "extra veggies");
+    return "";
+}
+
+function convertirAFraccion(decimal) {
+    if (decimal === 0) return "";
+    if (decimal < 0.15) return "1/8";
+    if (decimal < 0.3) return "1/4";
+    if (decimal < 0.45) return "1/3";
+    if (decimal < 0.65) return "1/2";
+    if (decimal < 0.85) return "3/4";
+    return ""; 
+}
+
+function formatearCantidad(cantidadBase, porciones, idIngrediente, unidadEs, unidadEn) {
+    var cantTotal = cantidadBase * porciones;
+    var unidad = idiomaActual === 'es' ? unidadEs : unidadEn;
+
+    if (unidad === "litros" || unidad === "liters") {
+        if (cantTotal < 1) {
+            return { cant: Math.round(cantTotal * 1000), uni: "ml" };
+        }
+    }
+
+    var entera = Math.floor(cantTotal);
+    var decimal = cantTotal - entera;
+
+    if (decimal >= 0.85) {
+        entera += 1;
+        decimal = 0;
+    }
+
+    var fraccion = convertirAFraccion(decimal);
+    var cantFinal = "";
+
+    if (entera > 0 && fraccion !== "") cantFinal = entera + " " + fraccion;
+    else if (entera > 0) cantFinal = entera.toString();
+    else if (fraccion !== "") cantFinal = fraccion;
+    else cantFinal = "1";
+
+    if (entera === 0 || (entera === 1 && decimal === 0)) {
+        if (idiomaActual === 'es') {
+            if (unidad === "unidades") unidad = "unidad";
+            if (unidad === "tallos") unidad = "tallo";
+            if (unidad === "tomates") unidad = "tomate";
+            if (unidad === "manojos") unidad = "manojo";
+            if (unidad === "cdtas") unidad = "cdta";
+            if (unidad === "cdas") unidad = "cda";
+            if (unidad === "pizcas") unidad = "pizca";
+            if (unidad === "paquetes") unidad = "paquete";
+            if (unidad === "hojas") unidad = "hoja";
+            if (unidad === "ramitas") unidad = "ramita";
+            if (unidad === "dientes") unidad = "diente";
+        } else {
+            if (unidad === "units") unidad = "unit";
+            if (unidad === "stalks") unidad = "stalk";
+            if (unidad === "tomatoes") unidad = "tomato";
+            if (unidad === "bunches") unidad = "bunch";
+            if (unidad === "pinches") unidad = "pinch";
+            if (unidad === "packs") unidad = "pack";
+            if (unidad === "leaves") unidad = "leaf";
+            if (unidad === "sprigs") unidad = "sprig";
+            if (unidad === "cloves") unidad = "clove";
+        }
+    }
+
+    return { cant: cantFinal, uni: unidad };
+}
+
+const ingredientesBaseSancocho = [
+    { id: "proteina", nombreEs: "[PROTEINA]", nombreEn: "[PROTEIN]", cantidadBase: 200, unidadEs: "g", unidadEn: "g" }, 
+    { id: "platano", nombreEs: "Plátano verde", nombreEn: "Green plantain", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "yuca", nombreEs: "Yuca", nombreEn: "Cassava", cantidadBase: 125, unidadEs: "g", unidadEn: "g" },
+    { id: "mazorca", nombreEs: "Mazorca", nombreEn: "Corn on the cob", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "papa", nombreEs: "Papa criolla", nombreEn: "Yellow creole potato", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "cebolla", nombreEs: "Cebolla larga", nombreEn: "Green onion", cantidadBase: 0.5, unidadEs: "tallos", unidadEn: "stalks" },
+    { id: "agua", nombreEs: "Agua", nombreEn: "Water", cantidadBase: 0.5, unidadEs: "litros", unidadEn: "liters" }
+];
+
+const ingredientesBaseEmpanadas = [
+    { id: "proteina", nombreEs: "[PROTEINA]", nombreEn: "[PROTEIN]", cantidadBase: 150, unidadEs: "g", unidadEn: "g" },
+    { id: "masa", nombreEs: "Masa de maíz", nombreEn: "Corn dough", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "papa", nombreEs: "Papa criolla cocida", nombreEn: "Cooked creole potato", cantidadBase: 80, unidadEs: "g", unidadEn: "g" },
+    { id: "cebolla", nombreEs: "Cebolla larga", nombreEn: "Green onion", cantidadBase: 0.25, unidadEs: "tallos", unidadEn: "stalks" },
+    { id: "agua", nombreEs: "Agua tibia", nombreEn: "Warm water", cantidadBase: 0.1, unidadEs: "litros", unidadEn: "liters" }
+];
+
+const ingredientesBaseCocadas = [
+    { id: "coco", nombreEs: "Coco rallado", nombreEn: "Shredded coconut", cantidadBase: 40, unidadEs: "g", unidadEn: "g" },
+    { id: "leche_condensada", nombreEs: "Leche condensada", nombreEn: "Condensed milk", cantidadBase: 35, unidadEs: "ml", unidadEn: "ml" },
+    { id: "vainilla", nombreEs: "Esencia de vainilla", nombreEn: "Vanilla extract", cantidadBase: 0.25, unidadEs: "cdtas", unidadEn: "tsp" },
+    { id: "sal", nombreEs: "Sal", nombreEn: "Salt", cantidadBase: 0.25, unidadEs: "pizcas", unidadEn: "pinches" }
+];
+
+const ingredientesBaseCoctel = [
+    { id: "camaron", nombreEs: "Camarones precocidos", nombreEn: "Precooked shrimp", cantidadBase: 150, unidadEs: "g", unidadEn: "g" },
+    { id: "salsa_tomate", nombreEs: "Salsa de tomate (Ketchup)", nombreEn: "Ketchup", cantidadBase: 2.5, unidadEs: "cdas", unidadEn: "tbsp" },
+    { id: "mayonesa", nombreEs: "Mayonesa", nombreEn: "Mayonnaise", cantidadBase: 1.5, unidadEs: "cdas", unidadEn: "tbsp" },
+    { id: "cebolla_morada", nombreEs: "Cebolla morada picada", nombreEn: "Diced red onion", cantidadBase: 0.25, unidadEs: "unidades", unidadEn: "units" },
+    { id: "limon", nombreEs: "Jugo de limón fresco", nombreEn: "Fresh lime juice", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "galletas", nombreEs: "Galletas de soda", nombreEn: "Saltine crackers", cantidadBase: 1, unidadEs: "paquetes", unidadEn: "packs" }
+];
+
+const ingredientesBaseBandeja = [
+    { id: "frijoles", nombreEs: "Frijoles cargamanto remojados", nombreEn: "Soaked red beans", cantidadBase: 120, unidadEs: "g", unidadEn: "g" },
+    { id: "chicharron", nombreEs: "Tocino para chicharrón con garra", nombreEn: "Pork belly for chicharrón", cantidadBase: 130, unidadEs: "g", unidadEn: "g" },
+    { id: "carne_molida", nombreEs: "Carne molida de res sofrita", nombreEn: "Sautéed ground beef", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "arroz", nombreEs: "Arroz blanco cocido", nombreEn: "Cooked white rice", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "platano_maduro", nombreEs: "Plátano maduro (Tajada)", nombreEn: "Sweet ripe plantain", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "huevo", nombreEs: "Huevo fresco para freír", nombreEn: "Fresh egg for frying", cantidadBase: 1, unidadEs: "unidades", unidadEn: "units" },
+    { id: "arepa", nombreEs: "Arepitas blancas antioqueñas", nombreEn: "Small white corn arepas", cantidadBase: 1, unidadEs: "unidades", unidadEn: "units" },
+    { id: "aguacate", nombreEs: "Aguacate Hass maduro", nombreEn: "Ripe Hass avocado", cantidadBase: 0.25, unidadEs: "unidades", unidadEn: "units" }
+];
+
+const ingredientesBaseArroz = [
+    { id: "arroz_dulce", nombreEs: "Arroz blanco de grano corto", nombreEn: "Short grain white rice", cantidadBase: 80, unidadEs: "g", unidadEn: "g" },
+    { id: "leche_entera", nombreEs: "Leche entera fresca", nombreEn: "Whole milk", cantidadBase: 0.35, unidadEs: "litros", unidadEn: "liters" },
+    { id: "leche_condensada", nombreEs: "Leche condensada cremosita", nombreEn: "Condensed milk", cantidadBase: 45, unidadEs: "ml", unidadEn: "ml" },
+    { id: "canela_rama", nombreEs: "Astilla de canela olorosa", nombreEn: "Cinnamon stick", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "uvas_pasas", nombreEs: "Uvas pasas dulces", nombreEn: "Sweet raisins", cantidadBase: 20, unidadEs: "g", unidadEn: "g" },
+    { id: "vainilla", nombreEs: "Esencia de vainilla", nombreEn: "Vanilla extract", cantidadBase: 0.25, unidadEs: "cdtas", unidadEn: "tsp" }
+];
+
+const ingredientesBaseAjiaco = [
+    { id: "pechuga_pollo", nombreEs: "Pechuga de pollo con hueso", nombreEn: "Chicken breast with bone", cantidadBase: 180, unidadEs: "g", unidadEn: "g" },
+    { id: "papa_sabanera", nombreEs: "Papa sabanera firme (en rodajas)", nombreEn: "Sliced sabanera potato", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "papa_pastusa", nombreEs: "Papa pastusa (en trozos)", nombreEn: "Pastusa potato chunks", cantidadBase: 100, unidadEs: "g", unidadEn: "g" },
+    { id: "papa_criolla", nombreEs: "Papa criolla amarilla para espesar", nombreEn: "Creole potato for thickening", cantidadBase: 120, unidadEs: "g", unidadEn: "g" },
+    { id: "mazorca", nombreEs: "Mazorca tiera tierna", nombreEn: "Fresh sweet corn on the cob", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "guascas", nombreEs: "Guascas frescas de la sabana", nombreEn: "Fresh guasca leaves", cantidadBase: 1, unidadEs: "manojos", unidadEn: "bunches" },
+    { id: "crema_leche", nombreEs: "Crema de leche de ordeño", nombreEn: "Heavy heavy cream", cantidadBase: 30, unidadEs: "ml", unidadEn: "ml" },
+    { id: "alcaparras", nombreEs: "Alcaparras baby en vinagre", nombreEn: "Baby capers in brine", cantidadBase: 1, unidadEs: "cdas", unidadEn: "tbsp" }
+];
+
+const ingredientesBasePapaRellena = [
+    { id: "proteina", nombreEs: "[PROTEINA]", nombreEn: "[PROTEIN]", cantidadBase: 120, unidadEs: "g", unidadEn: "g" },
+    { id: "papa", nombreEs: "Papa pastusa para puré", nombreEn: "Pastusa potato for mash", cantidadBase: 200, unidadEs: "g", unidadEn: "g" },
+    { id: "arroz", nombreEs: "Arroz blanco cocido", nombreEn: "Cooked white rice", cantidadBase: 40, unidadEs: "g", unidadEn: "g" },
+    { id: "huevo", nombreEs: "Huevo cocido duro", nombreEn: "Hard boiled egg", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "cebolla", nombreEs: "Cebolla larga picadita", nombreEn: "Diced green onion", cantidadBase: 0.25, unidadEs: "tallos", unidadEn: "stalks" },
+    { id: "harina_trigo", nombreEs: "Harina de trigo (para rebozado)", nombreEn: "Wheat flour (for batter)", cantidadBase: 30, unidadEs: "g", unidadEn: "g" },
+    { id: "huevo_crudo", nombreEs: "Huevo fresco (para batter)", nombreEn: "Fresh egg (for batter)", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" }
+];
+
+const ingredientesBaseTresLeches = [
+    { id: "bizcochuelo", nombreEs: "Bizcochuelo o galletas ducales", nombreEn: "Sponge cake or sweet crackers", cantidadBase: 60, unidadEs: "g", unidadEn: "g" },
+    { id: "leche_condensada", nombreEs: "Leche condensada", nombreEn: "Condensed milk", cantidadBase: 50, unidadEs: "ml", unidadEn: "ml" },
+    { id: "crema_leche", nombreEs: "Crema de leche batida", nombreEn: "Heavy whipping cream", cantidadBase: 50, unidadEs: "ml", unidadEn: "ml" },
+    { id: "leche_entera", nombreEs: "Leche entera o evaporada", nombreEn: "Whole or evaporated milk", cantidadBase: 50, unidadEs: "ml", unidadEn: "ml" },
+    { id: "vainilla", nombreEs: "Esencia de vainilla", nombreEn: "Vanilla extract", cantidadBase: 0.25, unidadEs: "cdtas", unidadEn: "tsp" },
+    { id: "canela_rama", nombreEs: "Canela molida o cerezas (para decorar)", nombreEn: "Ground cinnamon or cherries", cantidadBase: 0.5, unidadEs: "pizcas", unidadEn: "pinches" }
+];
+
+const ingredientesChimichurri = [
+    { id: "ajo", nombreEs: "Dientes de ajo grandes", nombreEn: "Large garlic cloves", cantidadBase: 1, unidadEs: "dientes", unidadEn: "cloves" },
+    { id: "perejil", nombreEs: "Perejil fresco picado", nombreEn: "Fresh chopped parsley", cantidadBase: 0.25, unidadEs: "manojos", unidadEn: "bunches" },
+    { id: "laurel", nombreEs: "Hojas de laurel fresco", nombreEn: "Fresh bay leaves", cantidadBase: 1, unidadEs: "hojas", unidadEn: "leaves" },
+    { id: "cebolla_junca", nombreEs: "Cabito de cebolla junca", nombreEn: "Green onion stalk", cantidadBase: 0.25, unidadEs: "tallos", unidadEn: "stalks" },
+    { id: "romero", nombreEs: "Ramita tierna de romero fresco", nombreEn: "Tender fresh rosemary sprig", cantidadBase: 0.25, unidadEs: "ramitas", unidadEn: "sprigs" },
+    { id: "aceite_girasol", nombreEs: "Aceite de girasol (para cubrir)", nombreEn: "Sunflower oil (to cover)", cantidadBase: 0.04, unidadEs: "litros", unidadEn: "liters" },
+    { id: "aceite_oliva", nombreEs: "Chorrito de aceite de oliva", nombreEn: "Splash of olive oil", cantidadBase: 1, unidadEs: "cdas", unidadEn: "tbsp" },
+    { id: "agua_minima", nombreEs: "Agua (solo un tris para licuar)", nombreEn: "Water (tiny splash to blend)", cantidadBase: 0.01, unidadEs: "litros", unidadEn: "liters" }
+];
+
+const ingredientesAji = [
+    { id: "cebolla", nombreEs: "Cebolla larga", nombreEn: "Green onion", cantidadBase: 0.25, unidadEs: "tallos", unidadEn: "stalks" },
+    { id: "tomate", nombreEs: "Tomate maduro", nombreEn: "Ripe tomato", cantidadBase: 0.25, unidadEs: "tomates", unidadEn: "tomatoes" },
+    { id: "cilantro", nombreEs: "Cilantro fresco picado", nombreEn: "Chopped fresh cilantro", cantidadBase: 1, unidadEs: "cdas", unidadEn: "tbsp" },
+    { id: "agua", nombreEs: "Agua y Vinagre", nombreEn: "Water and Vinegar", cantidadBase: 0.05, unidadEs: "litros", unidadEn: "liters" }
+];
+
+const ingredientesPatacon = [
+    { id: "platano", nombreEs: "Plátano verde grande", nombreEn: "Large green plantain", cantidadBase: 0.5, unidadEs: "unidades", unidadEn: "units" },
+    { id: "aceite", nombreEs: "Aceite para freír", nombreEn: "Frying oil", cantidadBase: 0.05, unidadEs: "litros", unidadEn: "liters" },
+    { id: "sal", nombreEs: "Sal y Ajo molido", nombreEn: "Salt & Garlic powder", cantidadBase: 0.5, unidadEs: "pizcas", unidadEn: "pinches" }
+];
+
+const pasosSancocho = [
+    {
+        titulo: { es: "¡Preparamos los ingredientes!", en: "We prepare the ingredients!", fr: "Nous préparons les ingrédients !" },
+        metodo: { es: "🔪 Alistando el Parche", en: "🔪 Getting Ready", fr: "🔪 Préparation" },
+        descripcion: function() {
+            var unPlatano = Math.ceil(0.5 * porcionesElegidas);
+            var unMazorca = Math.ceil(0.5 * porcionesElegidas);
+            var txtPlatano = idiomaActual === 'es' ? (unPlatano === 1 ? "unidad" : "unidades") : (unPlatano === 1 ? "unit" : "units");
+            var txtMazorca = idiomaActual === 'es' ? (unMazorca === 1 ? "unidad" : "unidades") : (unMazorca === 1 ? "unit" : "units");
+            return idiomaActual === 'es' 
+            ? "Pelamos la yuca <strong>(" + (125 * porcionesElegidas) + " g)</strong> en trozos medianos sin vena. Partimos el plátano verde <strong>(" + unPlatano + " " + txtPlatano + ")</strong> grueso y la mazorca <strong>(" + unMazorca + " " + txtMazorca + ")</strong> en porciones. Alistamos nuestros <strong>(" + (200 * porcionesElegidas) + " g de " + getProteinaNombre() + ")</strong> limpios."
+            : (idiomaActual === 'fr' 
+            ? "Pelez le manioc <strong>(" + (125 * porcionesElegidas) + " g)</strong> en morceaux. Coupez la banane plantain <strong>(" + unPlatano + " " + txtPlatano + ")</strong> et le maïs <strong>(" + unMazorca + " " + txtMazorca + ")</strong>. Préparez <strong>(" + (200 * porcionesElegidas) + " g de " + getProteinaNombre() + ")</strong>."
+            : "We peel the yucca <strong>(" + (125 * porcionesElegidas) + " g)</strong> into medium pieces. We chop green plantain <strong>(" + unPlatano + " " + txtPlatano + ")</strong> and corn <strong>(" + unMazorca + " " + txtMazorca + ")</strong>. Prepare <strong>(" + (200 * porcionesElegidas) + " g of " + getProteinaNombre() + ")</strong>.");
+        },
+        textoImagen: function() { return '<img src="ingredientes-paso1' + getProteinaKey() + '.webp" alt="Ingredientes" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Despertamos el sabor dorando todo!", en: "We awaken the flavor by browning everything!", fr: "Faites dorer pour réveiller les saveurs !" },
+        metodo: { es: "🔥 Dorado Sabor", en: "🔥 Golden Flavor", fr: "🔥 Saisie Dorée" },
+        descripcion: function() {
+            var unCebolla = Math.ceil(0.5 * porcionesElegidas);
+            var txtCebolla = idiomaActual === 'es' ? (unCebolla === 1 ? "tallo" : "tallos") : (unCebolla === 1 ? "stalk" : "stalks");
+            return idiomaActual === 'es'
+            ? "Calentamos un chorrito de aceite en nuestra olla y doramos los <strong>(" + (200 * porcionesElegidas) + " g de " + getProteinaNombre() + ")</strong> con la cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong> picada y ajo a fuego medio de 5 a 8 min hasta que se vea espectacular."
+            : "We heat a splash of oil in our pot and brown the <strong>(" + (200 * porcionesElegidas) + " g of " + getProteinaNombre() + ")</strong> with chopped green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> and garlic over medium heat for 5 to 8 min until it looks amazing.";
+        },
+        textoImagen: function() { return '<img src="sofreir-paso2' + getProteinaKey() + '.webp" alt="Sofreír" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Ponemos a cantar la olla!", en: "We make the pot sing!", fr: "Faites chanter la marmite !" },
+        metodo: { es: "🍲 Nace el Caldito", en: "🍲 The Broth is Born", fr: "🍲 Le Bouillon" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Cubrimos todo con los <strong>(" + parseFloat((0.5 * porcionesElegidas).toFixed(1)) + " L de agua)</strong> y sal al gusto. Subimos a fuego alto hasta alcanzar un hervor fuerte (10 a 15 min). Luego bajamos a fuego medio y retiramos la espumita para un caldo brillante."
+            : "We cover everything with <strong>(" + parseFloat((0.5 * porcionesElegidas).toFixed(1)) + " L of water)</strong> and salt to taste. Turn heat to high until a rolling boil (10 to 15 min). Lower heat to medium and skim foam.";
+        },
+        textoImagen: function() { return '<img src="hervir-paso3' + getProteinaKey() + '.webp" alt="Hervir" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Entran los pesos pesados!", en: "The heavyweights enter!", fr: "Ajoutez les légumes principaux !" },
+        metodo: { es: "🥔 Abrazo de Sabor", en: "🥔 Flavor Embrace", fr: "🥔 Les Légumes" },
+        descripcion: function() {
+            var unPlatano = Math.ceil(0.5 * porcionesElegidas);
+            var unMazorca = Math.ceil(0.5 * porcionesElegidas);
+            var txtPlatano = idiomaActual === 'es' ? (unPlatano === 1 ? "unidad" : "unidades") : (unPlatano === 1 ? "unit" : "units");
+            var txtMazorca = idiomaActual === 'es' ? (unMazorca === 1 ? "unidad" : "unidades") : (unMazorca === 1 ? "unit" : "units");
+            return idiomaActual === 'es'
+            ? "Agregamos el plátano verde <strong>(" + unPlatano + " " + txtPlatano + ")</strong> y la mazorca <strong>(" + unMazorca + " " + txtMazorca + ")</strong>. Tapamos y cocinamos 10 min. Luego incorporamos la yuca <strong>(" + (125 * porcionesElegidas) + " g)</strong> y le damos 15 minutos más para que todo ablande sabroso."
+            : "We add green plantain <strong>(" + unPlatano + " " + txtPlatano + ")</strong> and corn <strong>(" + unMazorca + " " + txtMazorca + ")</strong>. Cover and cook for 10 min. Stir in yucca <strong>(" + (125 * porcionesElegidas) + " g)</strong> and cook 15 more min.";
+        },
+        textoImagen: function() { return '<img src="tuberculos-paso4.webp" alt="Tubérculos" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡El toque maestro final!", en: "The final master touch!", fr: "La touche finale du chef !" },
+        metodo: { es: "🌿 Corona del Fogón", en: "🌿 Crown of the Fogón", fr: "🌿 Finition Parfumée" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Agregamos la papa criolla <strong>(" + (100 * porcionesElegidas) + " g)</strong> por 10 min para que nuestro caldito espese con cuerpo glorioso. Apagamos el fogón, coronamos con abundante cilantro fresco picado y ¡a disfrutar bien calientico!"
+            : "We add yellow creole potato <strong>(" + (100 * porcionesElegidas) + " g)</strong> for 10 min so broth thickens. Turn off heat, sprinkle fresh coriander and enjoy hot!";
+        },
+        textoImagen: function() { return '<img src="cilantro-paso5.webp" alt="Servir" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosEmpanadas = [
+    {
+        titulo: { es: "¡Preparamos masa y guiso!", en: "We prepare dough and filling!", fr: "Préparation de la pâte et de la farce !" },
+        metodo: { es: "🥟 Sazón de la Abuela", en: "🥟 Grandma's Seasoning", fr: "🥟 Assaisonnement Traditionnel" },
+        descripcion: function() {
+            var protLC = proteinaElegida.toLowerCase();
+            var unCebolla = Math.ceil(0.3 * porcionesElegidas);
+            var txtCebolla = idiomaActual === 'es' ? (unCebolla === 1 ? "tallo" : "tallos") : (unCebolla === 1 ? "stalk" : "stalks");
+            if (tipoMasa === "trigo") {
+                var rellenoEs = "";
+                var rellenoEn = "";
+                if (protLC.includes('carne') || protLC.includes('res')) {
+                    rellenoEs = "sofreímos cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong> con ajo, comino y la carne molida <strong>(" + (150 * porcionesElegidas) + " g)</strong> hasta dorar bien, e integramos la papa criolla cocida <strong>(" + (80 * porcionesElegidas) + " g)</strong> triturada.";
+                    rellenoEn = "we sauté green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> with garlic, cumin, and ground beef <strong>(" + (150 * porcionesElegidas) + " g)</strong> until well browned, and integrate the mashed cooked creole potato <strong>(" + (80 * porcionesElegidas) + " g)</strong>.";
+                } else {
+                    rellenoEs = "cocinamos el " + getProteinaNombre() + " <strong>(" + (150 * porcionesElegidas) + " g)</strong> con cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong> y papa triturada para un guiso firme.";
+                    rellenoEn = "we cook the " + getProteinaNombre() + " <strong>(" + (150 * porcionesElegidas) + " g)</strong> with green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> and mashed potato for a firm filling.";
+                }
+
+                return idiomaActual === 'es'
+                ? "¡Preparamos la masa de trigo desde cero! En un bol, colocamos la harina de trigo <strong>(" + (100 * porcionesElegidas) + " g)</strong>, sal, un huevo y vertemos el agua tibia <strong>(" + parseFloat((0.1 * porcionesElegidas).toFixed(1)) + " L)</strong> poco a poco. Amasamos 5 a 8 min hasta obtener una masa suave. Mientras la masa reposa, " + rellenoEs
+                : "We prepare wheat dough from scratch! In a bowl, place wheat flour <strong>(" + (100 * porcionesElegidas) + " g)</strong>, salt, egg, and warm water <strong>(" + parseFloat((0.1 * porcionesElegidas).toFixed(1)) + " L)</strong>. Knead 5 to 8 min until smooth. While dough rests, " + rellenoEn;
+            }
+
+            if (protLC.includes('carne') || protLC.includes('res')) {
+                return idiomaActual === 'es'
+                ? "Alistamos la masa de maíz <strong>(" + (100 * porcionesElegidas) + " g)</strong> con sal. Para el guiso, sofreímos cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong> con ajo y comino. Añadimos la carne molida <strong>(" + (150 * porcionesElegidas) + " g)</strong> hasta dorar bien, e integramos la papa criolla cocida <strong>(" + (80 * porcionesElegidas) + " g)</strong> triturada."
+                : "We prepare corn dough <strong>(" + (100 * porcionesElegidas) + " g)</strong> with salt. For filling, sauté green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> with garlic and cumin. Add ground beef <strong>(" + (150 * porcionesElegidas) + " g)</strong> until browned, and integrate cooked creole potato <strong>(" + (80 * porcionesElegidas) + " g)</strong>.";
+            }
+            return idiomaActual === 'es'
+            ? "Alistamos la masa de maíz <strong>(" + (100 * porcionesElegidas) + " g)</strong> con sal. Amasamos firmemente 5 min hasta tener una textura suave. Aparte, cocinamos el " + getProteinaNombre() + " <strong>(" + (150 * porcionesElegidas) + " g)</strong> con cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong> y papa triturada."
+            : "We prepare corn dough <strong>(" + (100 * porcionesElegidas) + " g)</strong> with salt. Knead firmly 5 min. Aside, cook " + getProteinaNombre() + " <strong>(" + (150 * porcionesElegidas) + " g)</strong> with green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> and mashed potato.";
+        },
+        textoImagen: function() { return '<img src="empanadas-paso1' + getProteinaKey() + '.webp" alt="Masa" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡El arte de armar nuestras empanadas!", en: "The art of shaping our empanadas!", fr: "L'art de façonner les empanadas !" },
+        metodo: { es: "🥟 El Secreto del Cierre", en: "🥟 The Secret of the Seal", fr: "🥟 Le Secret de la Fermeture" },
+        descripcion: function() {
+            var protLC = proteinaElegida.toLowerCase();
+            var rellenoEs = "guiso tradicional", rellenoEn = "traditional filling";
+            if (protLC.includes('pollo')) { rellenoEs = "jugoso pollo desmechado"; rellenoEn = "juicy shredded chicken"; }
+            if (protLC.includes('carne') || protLC.includes('res')) { rellenoEs = "delicioso guiso de carne molida"; rellenoEn = "delicious ground beef filling"; }
+            if (protLC.includes('cerdo')) { rellenoEs = "costillita desmechada"; rellenoEn = "shredded pork ribs"; }
+            if (protLC.includes('pescado')) { rellenoEs = "pescado en su punto"; rellenoEn = "perfectly cooked fish"; }
+            if (protLC.includes('vegetales')) { rellenoEs = "vegetales saltaditos"; rellenoEn = "sauteed veggies"; }
+
+            return idiomaActual === 'es'
+            ? "Hacemos bolitas de masa del tamaño de un limón pequeño y las estiramos delgadas sobre plástico. Justo en el centro, ponemos una cucharada generosa de ese " + rellenoEs + ". Doblamos a la mitad en media luna y sellamos firmemente los bordes con un tenedor."
+            : "We make small dough balls the size of a small lime and roll them out thin over plastic. Right in the center, place a generous spoonful of that " + rellenoEn + ". Fold in half into a half-moon shape and seal edges with a fork.";
+        },
+        textoImagen: function() { return '<img src="empanadas-paso2' + getProteinaKey() + '.webp" alt="Armar" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Al sartén a rugir de crocantes!", en: "To the pan to roar with crispiness!", fr: "À la poêle pour un croustillant parfait !" },
+        metodo: { es: "🔥 Fritura de Oro", en: "🔥 Golden Frying", fr: "🔥 Friture Dorée" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? 'Calentamos bastante aceite a fuego alto. Sumergimos las empanadas con cuidado y las cocinamos de 3 a 5 min por lado hasta que tomen un color dorado hermoso y crocante. ¡Las sacamos, escurrimos y dejamos listas!<br><br><button type="button" onclick="irAIngredientesAji()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 6px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🌶️</span> Aprende a hacer ají casero para acompañar tus empanadas</button>'
+            : (idiomaActual === 'fr' 
+            ? 'Chauffez l\'huile à feu vif. Plongez les empanadas et faites frire 3 à 5 min par côté jusqu\'à ce qu\'elles soient bien dorées et croustillantes !<br><br><button type="button" onclick="irAIngredientesAji()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 6px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🌶️</span> Apprenez à préparer le piment ají maison pour vos empanadas</button>'
+            : 'We heat plenty of oil over high heat. Carefully submerge empanadas and cook 3 to 5 min per side until golden and crispy. Drain and serve!<br><br><button type="button" onclick="irAIngredientesAji()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 8px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🌶️</span> Learn to make homemade ají to go with your empanadas</button>');
+        },
+        textoImagen: function() { return '<img src="empanadas-paso3' + getProteinaKey() + '.webp" alt="Freír" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosCocadas = [
+    {
+        titulo: { es: "¡A calentar motores!", en: "Let's warm up!", fr: "Préchauffez le four !" },
+        metodo: { es: "🔥 Preparación", en: "🔥 Preparation", fr: "🔥 Préparation" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Precalentamos el horno a 180 °C (350 °F). Preparamos una bandeja para hornear engrasándola ligeramente con mantequilla o cubriéndola con papel para hornear para que nuestras cocadas no se peguen."
+            : "Preheat the oven to 180 °C (350 °F). Prepare a baking sheet by lightly greasing it with butter or lining it with parchment paper so our cocadas don't stick.";
+        },
+        textoImagen: function() { return '<img src="cocadas-paso1.webp" alt="Preparación" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Mezclamos la dulzura!", en: "We mix the sweetness!", fr: "Mélangez les ingrédients !" },
+        metodo: { es: "🥣 La Masa", en: "🥣 The Dough", fr: "🥣 La Pâte" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "En un recipiente grande, combinamos el coco rallado <strong>(" + Math.ceil(40 * porcionesElegidas) + " g)</strong>, la leche condensada <strong>(" + Math.ceil(35 * porcionesElegidas) + " ml)</strong>, esencia de vainilla y sal. Revolvemos bien hasta integrar."
+            : "In a large bowl, combine shredded coconut <strong>(" + Math.ceil(40 * porcionesElegidas) + " g)</strong>, condensed milk <strong>(" + Math.ceil(35 * porcionesElegidas) + " ml)</strong>, vanilla extract, and salt. Stir well to combine.";
+        },
+        textoImagen: function() { return '<img src="cocadas-paso2.webp" alt="Mezclando el coco" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Armando las cocadas!", en: "Shaping the cocadas!", fr: "Formez les cocadas !" },
+        metodo: { es: "🥄 Porciones", en: "🥄 Portions", fr: "🥄 Portions" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Con ayuda de una cuchara, tomamos porciones <strong>(" + (porcionesElegidas * 2) + " unidades)</strong> de la mezcla y las colocamos sobre la bandeja dejando 2 o 3 cm de separación."
+            : "Using a spoon, take portions <strong>(" + (porcionesElegidas * 2) + " units)</strong> of the mixture and place them on the baking sheet leaving 2 to 3 cm of separation.";
+        },
+        textoImagen: function() { return '<img src="cocadas-paso3.webp" alt="Armando porciones" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Al horno a dorar!", en: "To the oven to brown!", fr: "Au four pour dorar !" },
+        metodo: { es: "⏲️ Horneado", en: "⏲️ Baking", fr: "⏲️ Cuisson" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Llevamos la bandeja al horno durante 18 a 22 min, vigilándolas hasta que los bordes y la superficie estén ligeramente doraditos. ¡El olor a coco inundará la cocina!"
+            : "Take the tray to the oven for 18 to 22 min, watching them until the edges and surface are slightly golden. The smell of coconut will flood the kitchen!";
+        },
+        textoImagen: function() { return '<img src="cocadas-paso4.webp" alt="Dorando en horno" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡A enfriar y disfrutar!", en: "Cool and enjoy!", fr: "Laissez refroidir et dégustez !" },
+        metodo: { es: "❄️ Reposo", en: "❄️ Rest", fr: "❄️ Repos" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Retiramos del horno y dejamos reposar en la bandeja 5 min. Luego, las pasamos a una rejilla hasta que se enfríen por completo. ¡Sírvelas a temperatura ambiente!"
+            : "Remove from oven and let rest on tray 5 min. Transfer to a wire rack until completely cool. Serve at room temperature!";
+        },
+        textoImagen: function() { return '<img src="cocadas-paso5.webp" alt="Enfriando y sirviendo" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosCoctel = [
+    {
+        titulo: { es: "¡Alistamos cebollita y camarones!", en: "We prepare onions and shrimp!", fr: "Préparation des crevettes et oignons !" },
+        metodo: { es: "🔪 Picado Fino", en: "🔪 Fine Dicing", fr: "🔪 Hachage Fin" },
+        descripcion: function() {
+            var unCebolla = Math.ceil(0.25 * porcionesElegidas);
+            var unLimon = Math.ceil(0.5 * porcionesElegidas);
+            var txtCebolla = idiomaActual === 'es' ? (unCebolla === 1 ? "unidad" : "unidades") : (unCebolla === 1 ? "unit" : "units");
+            var txtLimon = idiomaActual === 'es' ? (unLimon === 1 ? "limón" : "limones") : (unLimon === 1 ? "lime" : "limes");
+            return idiomaActual === 'es'
+            ? "Alistamos los camarones precocidos <strong>(" + (150 * porcionesElegidas) + " g)</strong>. Picamos cebolla morada <strong>(" + unCebolla + " " + txtCebolla + ")</strong> finitamente y le exprimimos el jugo de limón <strong>(" + unLimon + " " + txtLimon + ")</strong> con sal por 5 min."
+            : "We prepare precooked shrimp <strong>(" + (150 * porcionesElegidas) + " g)</strong>. Finely dice red onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong> and squeeze lime juice <strong>(" + unLimon + " " + txtLimon + ")</strong> with salt for 5 min.";
+        },
+        textoImagen: function() { return '<img src="coctel-paso1.webp" alt="Preparación Camarones" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Creamos la salsa rosada costeña!", en: "We mix the coastal pink sauce!", fr: "La sauce rose côtière !" },
+        metodo: { es: "🥄 Mezcla Secreta", en: "🥄 Secret Mix", fr: "🥄 Mélange Secret" },
+        descripcion: function() {
+            var cdasKetchup = parseFloat((2.5 * porcionesElegidas).toFixed(1));
+            var cdasMayo = parseFloat((1.5 * porcionesElegidas).toFixed(1));
+            return idiomaActual === 'es'
+            ? "En un tazón grande, mezclamos la salsa de tomate <strong>(" + cdasKetchup + " cdas)</strong>, mayonesa <strong>(" + cdasMayo + " cdas)</strong>, ajo triturado y cilantro picado. Revolvemos suavemente."
+            : "In a large bowl, mix ketchup <strong>(" + cdasKetchup + " tbsp)</strong>, mayo <strong>(" + cdasMayo + " tbsp)</strong>, crushed garlic, and chopped cilantro. Stir gently.";
+        },
+        textoImagen: function() { return '<img src="coctel-paso2.webp" alt="Salsa Rosada Costeña" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Unimos todo y a refrescar!", en: "We merge and chill!", fr: "Mélangez et rafraîchissez !" },
+        metodo: { es: "❄️ Sabor Frío", en: "❄️ Cold Flavor", fr: "❄️ Repos au Frais" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Incorporamos los camarones bien escurridos y la cebolla morada marinada dentro de la salsa rosada. Dejamos reposar en el refrigerador durante 10 a 15 min para que se concentre el sabor."
+            : "Fold in the well-drained shrimp and marinated red onion into the pink sauce. Let it rest in the fridge for 10 to 15 min to chill.";
+        },
+        textoImagen: function() { return '<img src="coctel-paso3.webp" alt="Unir y Refrigerar" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Servimos bien elegante!", en: "We serve in style!", fr: "Service élégant !" },
+        metodo: { es: "👑 Toque Final", en: "👑 Final Touch", fr: "👑 Touche Finale" },
+        descripcion: function() {
+            var paquetesGalleta = Math.ceil(1 * porcionesElegidas);
+            var txtPaq = idiomaActual === 'es' ? (paquetesGalleta === 1 ? "paquete" : "paquetes") : (paquetesGalleta === 1 ? "pack" : "packs");
+            return idiomaActual === 'es'
+            ? 'Servimos el coctel en copas frías. Coronamos con cilantro fresco, una tajada de limón y acompañamos con galletas de soda <strong>(' + paquetesGalleta + ' ' + txtPaq + ')</strong>.<br><br><button type="button" onclick="irAIngredientesPatacon()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 6px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🍌</span> Aprende a hacer patacones crocantes para tu coctel</button>'
+            : 'Serve cocktail in chilled glasses. Crown with fresh cilantro, a lime wedge, and serve with saltine crackers <strong>(' + paquetesGalleta + ' ' + txtPaq + ')</strong>.<br><br><button type="button" onclick="irAIngredientesPatacon()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 8px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🍌</span> Learn to make crispy patacones for your cocktail</button>';
+        },
+        textoImagen: function() { return '<img src="coctel-paso4.webp" alt="Servir Coctel" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosBandeja = [
+    {
+        titulo: { es: "¡Ponemos a pitar los frijoles!", en: "We cook the red beans!", fr: "Cuisson des haricots !" },
+        metodo: { es: "🍲 Frijoles Paisas", en: "🍲 Paisa Red Beans", fr: "🍲 Haricots Paisas" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Cocinamos en olla a presión los frijoles cargamanto <strong>(" + (120 * porcionesElegidas) + " g)</strong> remojados con plátano verde rallado y zanahoria por 30 a 35 min. Integramos un buen hogao de cebolla y tomate y dejamos calar hasta espesar."
+            : "Pressure cook red beans <strong>(" + (120 * porcionesElegidas) + " g)</strong> soaked with grated green plantain and carrot for 30 to 35 min. Mix in tomato-onion hogao and simmer until thick.";
+        },
+        textoImagen: function() { return '<img src="bandeja-paso1.webp" alt="Frijoles Paisas" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡El chicharrón crocante de garra!", en: "Crispy pork belly chicharrón!", fr: "Poitrine de porc croustillante !" },
+        metodo: { es: "🥓 Chicharrón de Oro", en: "🥓 Golden Pork Belly", fr: "🥓 Chicharrón Doré" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Hacemos cortes al tocino <strong>(" + (130 * porcionesElegidas) + " g)</strong> formando paticas. Sazonamos con sal y bicarbonato. Sancochamos en poca agua hasta evaporar y freímos en su propia grasa a fuego medio hasta dorar crocante."
+            : "Cut pork belly <strong>(" + (130 * porcionesElegidas) + " g)</strong> into strips. Season with salt and baking soda. Simmer in shallow water, then fry in its own fat over medium heat until crispy.";
+        },
+        textoImagen: function() { return '<img src="bandeja-paso2.webp" alt="Chicharrón Crocante" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Doramos la carne molida jugosa!", en: "Sauté the flavorful ground beef!", fr: "Faites revenir le bœuf haché !" },
+        metodo: { es: "🥩 Carne Sazonada", en: "🥩 Seasoned Beef", fr: "🥩 Bœuf Assaisonné" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "En una sartén con aceite, soframos cebolla y ajo. Agregamos la carne molida <strong>(" + (100 * porcionesElegidas) + " g)</strong> con comino, sal y color. Revolvemos hasta que quede suelta y jugosita."
+            : "Sauté onion and garlic in oil. Add ground beef <strong>(" + (100 * porcionesElegidas) + " g)</strong> with cumin, salt, and achiote. Stir until loose and juicy.";
+        },
+        textoImagen: function() { return '<img src="bandeja-paso3.webp" alt="Carne Molida Sofrita" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Tajadas dulces y huevo frito!", en: "Sweet plantains and fried eggs!", fr: "Banane frite et œuf au plat !" },
+        metodo: { es: "🍳 Acompañamientos", en: "🍳 Sides & Egg", fr: "🍳 Accompagnements" },
+        descripcion: function() {
+            var tajadas = Math.ceil(0.5 * porcionesElegidas);
+            var huevos = Math.ceil(1 * porcionesElegidas);
+            var txtTaj = idiomaActual === 'es' ? (tajadas === 1 ? "unidad" : "unidades") : (tajadas === 1 ? "unit" : "units");
+            var txtHue = idiomaActual === 'es' ? (huevos === 1 ? "huevo" : "huevos") : (huevos === 1 ? "egg" : "eggs");
+            return idiomaActual === 'es'
+            ? "Freímos tajadas de plátano maduro <strong>(" + tajadas + " " + txtTaj + ")</strong> a fuego medio hasta dorar. Aparte, freímos los huevos <strong>(" + huevos + " " + txtHue + ")</strong> dejando la yema suavecita."
+            : "Fry sweet plantain slices <strong>(" + tajadas + " " + txtTaj + ")</strong> over medium heat until golden. Aside, fry eggs <strong>(" + huevos + " " + txtHue + ")</strong> keeping yolks soft.";
+        },
+        textoImagen: function() { return '<img src="bandeja-paso4.webp" alt="Tajadas y Huevo" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡El gran armado de la Bandeja!", en: "Plating the Grand Paisa Tray!", fr: "Dressage du grand plat Paisa !" },
+        metodo: { es: "👑 Festín Paisa", en: "👑 Paisa Feast", fr: "👑 Festin Paisa" },
+        descripcion: function() {
+            var arepas = Math.ceil(1 * porcionesElegidas);
+            var aguacate = Math.ceil(0.25 * porcionesElegidas);
+            var txtAre = idiomaActual === 'es' ? (arepas === 1 ? "arepita" : "arepitas") : (arepas === 1 ? "arepa" : "arepas");
+            var txtAgu = idiomaActual === 'es' ? (aguacate === 1 ? "unidad" : "unidades") : (aguacate === 1 ? "unit" : "units");
+            return idiomaActual === 'es'
+            ? "Servimos arroz blanco <strong>(" + (100 * porcionesElegidas) + " g)</strong> con el huevo encima. Colocamos frijoles al lado, chicharrón, carne molida, tajada madura, arepitas <strong>(" + arepas + " " + txtAre + ")</strong> y aguacate <strong>(" + aguacate + " " + txtAgu + ")</strong>. ¡A disfrutar!"
+            : "Serve white rice <strong>(" + (100 * porcionesElegidas) + " g)</strong> topped with fried egg. Add beans, chicharrón, ground beef, sweet plantain, toasted arepas <strong>(" + arepas + " " + txtAre + ")</strong>, and avocado <strong>(" + aguacate + " " + txtAgu + ")</strong>. Enjoy!";
+        },
+        textoImagen: function() { return '<img src="bandeja-paso5.webp" alt="Bandeja Paisa Lista" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosArroz = [
+    {
+        titulo: { es: "¡Aromatizamos la leche!", en: "Infusing the milk with cinnamon!", fr: "Infusez le lait à la cannelle !" },
+        metodo: { es: "🪵 Infusión Dulce", en: "🪵 Sweet Infusion", fr: "🪵 Infusion Douce" },
+        descripcion: function() {
+            var cantCanela = Math.ceil(0.5 * porcionesElegidas);
+            var txtCanela = idiomaActual === 'es' ? (cantCanela === 1 ? "astilla" : "astillas") : (cantCanela === 1 ? "stick" : "sticks");
+            return idiomaActual === 'es'
+            ? "En una olla ponemos la leche entera <strong>(" + parseFloat((0.35 * porcionesElegidas).toFixed(2)) + " L)</strong> con la astilla de canela <strong>(" + cantCanela + " " + txtCanela + ")</strong> y vainilla. Llevamos a fuego medio hasta hervir suavemente."
+            : "In a pot, combine whole milk <strong>(" + parseFloat((0.35 * porcionesElegidas).toFixed(2)) + " L)</strong> with cinnamon stick <strong>(" + cantCanela + " " + txtCanela + ")</strong> and vanilla. Simmer gently over medium heat.";
+        },
+        textoImagen: function() { return '<img src="arroz-paso1.webp" alt="Aromatizar Leche" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥛🪵✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Cocemos el arroz despacito!", en: "Simmering the rice to perfection!", fr: "Cuisson douce du riz !" },
+        metodo: { es: "🍚 Cocción Lenta", en: "🍚 Slow Simmer", fr: "🍚 Cuisson Lente" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Agregamos el arroz <strong>(" + (80 * porcionesElegidas) + " g)</strong> lavado a la leche hirviendo. Bajamos a fuego bajo y cocinamos revolviendo constantemente con cuchara de palo por 20 a 25 min hasta ablandar."
+            : "Add washed rice <strong>(" + (80 * porcionesElegidas) + " g)</strong> to the milk. Lower heat to low and cook stirring constantly with wooden spoon for 20 to 25 min until tender.";
+        },
+        textoImagen: function() { return '<img src="arroz-paso2.webp" alt="Cocinar Arroz" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍚🥛🔥</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Entra la cremosidad extrema!", en: "In goes the creamy sweetness!", fr: "Ajoutez la touche très crémeuse !" },
+        metodo: { es: "🥛 Toque Dulce", en: "🥛 Creamy Touch", fr: "🥛 Onctuosité" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Retiramos la astilla de canela. Vertemos la leche condensada <strong>(" + Math.ceil(45 * porcionesElegidas) + " ml)</strong> y una pizca de sal. Mezclamos bien a fuego bajo durante 8 a 10 min más."
+            : "Remove cinnamon stick. Pour in condensed milk <strong>(" + Math.ceil(45 * porcionesElegidas) + " ml)</strong> and a pinch of salt. Stir well over low heat for 8 to 10 min more.";
+        },
+        textoImagen: function() { return '<img src="arroz-paso3.webp" alt="Agregar Leche Condensada" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥛🍯🥄</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡El toque de pasas y textura!", en: "Adding sweet raisins and texture!", fr: "Raisins secs et texture !" },
+        metodo: { es: "🍇 Uvas Pasas", en: "🍇 Sweet Raisins", fr: "🍇 Raisins Secs" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Incorporamos las uvas pasas <strong>(" + (20 * porcionesElegidas) + " g)</strong> a la olla. Apagamos el fuego cuando el arroz esté cremoso, recordando que al enfriarse espesará más."
+            : "Fold sweet raisins <strong>(" + (20 * porcionesElegidas) + " g)</strong> into the pot. Turn off heat while creamy, as it thickens as it cools.";
+        },
+        textoImagen: function() { return '<img src="arroz-paso4.webp" alt="Agregar Uvas Pasas" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍇🍚✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Servimos con lluvia de canela!", en: "Serve dusted with ground cinnamon!", fr: "Servez saupoudré de cannelle !" },
+        metodo: { es: "✨ Presentación Real", en: "✨ Royal Finish", fr: "✨ Finition Royale" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Servimos en copas individuales. Podemos disfrutarlo tibio o dejarlo reposar en la nevera para servir bien frío. Espolvoreamos canela molida por encima y ¡a disfrutar!"
+            : "Spoon into individual dessert bowls. Serve warm or chilled from the fridge. Sprinkle ground cinnamon on top and enjoy!";
+        },
+        textoImagen: function() { return '<img src="arroz-paso5.webp" alt="Servir Arroz con Leche" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍨🪵👑</div>\'">'; }
+    }
+];
+
+const pasosAjiaco = [
+    {
+        titulo: { es: "¡Cocinamos el pollo y las mazorcas!", en: "Cooking the chicken and corn!", fr: "Cuisson du poulet et du maïs !" },
+        metodo: { es: "🍗 Caldo Base", en: "🍗 Flavorful Broth", fr: "🍗 Bouillon de Poulet" },
+        descripcion: function() {
+            var mazorca = Math.ceil(0.5 * porcionesElegidas);
+            var txtMaz = idiomaActual === 'es' ? (mazorca === 1 ? "unidad" : "unidades") : (mazorca === 1 ? "unit" : "units");
+            return idiomaActual === 'es'
+            ? "En una olla grande con agua, cocinamos las pechugas de pollo <strong>(" + (180 * porcionesElegidas) + " g)</strong> con la mazorca <strong>(" + mazorca + " " + txtMaz + ")</strong>, cebolla larga y ajo por 25 min. Sacamos el pollo y deshilachamos."
+            : "In a large pot with water, cook chicken breasts <strong>(" + (180 * porcionesElegidas) + " g)</strong> with corn <strong>(" + mazorca + " " + txtMaz + ")</strong>, green onions, and garlic for 25 min. Remove chicken and shred.";
+        },
+        textoImagen: function() { return '<img src="ajiaco-paso1.webp" alt="Cocinando Pollo" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍗🌽🍲</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡El secreto del espesor: Las 3 papas!", en: "The secret thickness: 3 potatoes!", fr: "Le secret de l'épaisseur : 3 pommes de terre !" },
+        metodo: { es: "🥔 Trio de Papas", en: "🥔 Potato Trio", fr: "🥔 Trio de Pommes de Terre" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Agregamos al caldo la papa sabanera <strong>(" + (100 * porcionesElegidas) + " g)</strong>, la pastusa <strong>(" + (100 * porcionesElegidas) + " g)</strong> y la criolla <strong>(" + (120 * porcionesElegidas) + " g)</strong>. Dejamos hervir por 30 min hasta que espese de forma cremosa."
+            : "Add sabanera potatoes <strong>(" + (100 * porcionesElegidas) + " g)</strong>, pastusa potatoes <strong>(" + (100 * porcionesElegidas) + " g)</strong>, and creole potatoes <strong>(" + (120 * porcionesElegidas) + " g)</strong> to broth. Simmer for 30 min until creamy.";
+        },
+        textoImagen: function() { return '<img src="ajiaco-paso2.webp" alt="Trío de Papas" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥔🥔🥔</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Perfumamos con guascas frescas!", en: "Infusing with fresh guasca leaves!", fr: "Parfumez avec les herbes guascas !" },
+        metodo: { es: "🌿 Alma Bogotana", en: "🌿 Bogotazo Herbal", fr: "🌿 Herbes Bogotaines" },
+        descripcion: function() {
+            var guasca = Math.ceil(1 * porcionesElegidas);
+            var txtGua = idiomaActual === 'es' ? (guasca === 1 ? "manojo" : "manojos") : (guasca === 1 ? "bunch" : "bunches");
+            return idiomaActual === 'es'
+            ? "Añadimos las guascas frescas <strong>(" + guasca + " " + txtGua + ")</strong> 5 min antes de apagar. Su aroma inconfundible impregnará la sopa con el auténtico sabor sabanero."
+            : "Add fresh guasca leaves <strong>(" + guasca + " " + txtGua + ")</strong> 5 min before turning off heat for that authentic Bogota flavor.";
+        },
+        textoImagen: function() { return '<img src="ajiaco-paso3.webp" alt="Guascas Frescas" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🌿🍲✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Servimos con el pollo desmechado!", en: "Plating with shredded chicken!", fr: "Servez avec le poulet effiloché !" },
+        metodo: { es: "🍲 Servido Caliente", en: "🍲 Hot Serving", fr: "🍲 Service Chaud" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Servimos la sopa espesa y humeante en cazuelas de barro bien calientes. Distribuimos el pollo desmechado por encima y colocamos un trozo de mazorca en cada plato."
+            : "Spoon the thick, hot soup into clay bowls. Top with shredded chicken and a corn cob segment in each bowl.";
+        },
+        textoImagen: function() { return '<img src="ajiaco-paso4.webp" alt="Servir Ajiaco" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍲🍗🌽</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Corona de crema y alcaparras!", en: "Crown with cream and capers!", fr: "Garniture crème et câpres !" },
+        metodo: { es: "👑 Toque Gourmand", en: "👑 Gourmet Crown", fr: "👑 Finition Gourmande" },
+        descripcion: function() {
+            var alcaparras = Math.ceil(1 * porcionesElegidas);
+            var txtAlc = idiomaActual === 'es' ? (alcaparras === 1 ? "cucharada" : "cucharadas") : (alcaparras === 1 ? "tbsp" : "tbsp");
+            return idiomaActual === 'es'
+            ? "Acompañamos cada cazuela con un hilo de crema de leche <strong>(" + Math.ceil(30 * porcionesElegidas) + " ml)</strong>, alcaparras <strong>(" + alcaparras + " " + txtAlc + ")</strong> y aguacate fresco al lado."
+            : "Top each bowl with a drizzle of cream <strong>(" + Math.ceil(30 * porcionesElegidas) + " ml)</strong>, capers <strong>(" + alcaparras + " " + txtAlc + ")</strong>, and avocado slices.";
+        },
+        textoImagen: function() { return '<img src="ajiaco-paso5.webp" alt="Ajiaco Final con Crema" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥑🥛✨</div>\'">'; }
+    }
+];
+
+const pasosPapaRellena = [
+    {
+        titulo: { es: "¡Cocemos las papas y armamos el puré!", en: "Boil potatoes and make the mash!", fr: "Purée de pommes de terre !" },
+        metodo: { es: "🥔 Puré Firme", en: "🥔 Firm Mash", fr: "🥔 Purée Ferme" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Cocinamos en agua con sal la papa pastusa <strong>(" + (200 * porcionesElegidas) + " g)</strong> pelada hasta ablandar. Escurrimos y en caliente trituramos hasta formar un puré suave pero firme con sal, comino y color."
+            : "Boil peeled pastusa potatoes <strong>(" + (200 * porcionesElegidas) + " g)</strong> in salted water until soft. Drain and mash while hot until smooth and firm with salt, cumin, and color.";
+        },
+        textoImagen: function() { return '<img src="papa-rellena-paso1.webp" alt="Puré de Papa" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥔🥣🌾</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Sazonamos el guiso y huevo!", en: "Prepare the filling and eggs!", fr: "Préparez la farce et les œufs !" },
+        metodo: { es: "🥩 Relleno Criollo", en: "🥩 Savory Filling", fr: "🥩 Farce Savoureuse" },
+        descripcion: function() {
+            var huevoDuro = Math.ceil(0.5 * porcionesElegidas);
+            var txtHue = idiomaActual === 'es' ? (huevoDuro === 1 ? "unidad" : "unidades") : (huevoDuro === 1 ? "unit" : "units");
+            return idiomaActual === 'es'
+            ? "Sofreímos cebolla larga y tomate. Agregamos el " + getProteinaNombre() + " <strong>(" + (120 * porcionesElegidas) + " g)</strong> hasta dorar. Mezclamos con arroz cocido <strong>(" + (40 * porcionesElegidas) + " g)</strong> y huevo duro <strong>(" + huevoDuro + " " + txtHue + ")</strong> picado."
+            : "Sauté green onion and tomato. Add " + getProteinaNombre() + " <strong>(" + (120 * porcionesElegidas) + " g)</strong> and cook until browned. Mix with cooked rice <strong>(" + (40 * porcionesElegidas) + " g)</strong> and chopped hard-boiled egg <strong>(" + huevoDuro + " " + txtHue + ")</strong>.";
+        },
+        textoImagen: function() { return '<img src="papa-rellena-paso2.webp" alt="Guiso y Huevo" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥩🍳🧅</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Formamos las bolas de papa!", en: "Shaping the stuffed potato balls!", fr: "Formez les boules de purée !" },
+        metodo: { es: "🥔 El Armado", en: "🥔 Shaping Balls", fr: "🥔 Façonnage" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Tomamos una porción generosa de puré en la mano aplanándola como arepita. Colocamos en el centro una cucharada de guiso y huevo duro. Cerramos envolviendo el relleno y moldeamos una bola redonda."
+            : "Take a generous portion of potato mash and flatten it on your hand like a disc. Place filling and egg in the center. Carefully wrap potato around filling, shaping into a ball.";
+        },
+        textoImagen: function() { return '<img src="papa-rellena-paso3.webp" alt="Armar Papa Rellena" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🧆✋✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Rebozado y fritura crocante!", en: "Batter coating and golden fry!", fr: "Enrobage et friture croustillante !" },
+        metodo: { es: "🔥 Dorado Crocante", en: "🔥 Golden Frying", fr: "🔥 Friture Dorée" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? 'Preparamos la mezcla batiendo harina de trigo <strong>(' + (30 * porcionesElegidas) + ' g)</strong>, huevo y agua con color. Bañamos las papas y freímos en aceite caliente de 4 a 6 min hasta dorar crocante.<br><br><button type="button" onclick="irAIngredientesChimichurri()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 6px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🌿</span> Aprende a hacer chimichurri casero para tus papas rellenas</button>'
+            : 'Make batter by whisking wheat flour <strong>(' + (30 * porcionesElegidas) + ' g)</strong>, egg, and water. Coat stuffed potatoes and fry in hot oil 4 to 6 min until crispy.<br><br><button type="button" onclick="irAIngredientesChimichurri()" class="btn-primary" style="padding: 10px; font-size: 13px; border-radius: 12px; margin-top: 8px; box-shadow: none; cursor: pointer; font-family: \'Poppins\', sans-serif;"><span class="spicy-pepper">🌿</span> Learn to make homemade chimichurri for your stuffed potatoes</button>';
+        },
+        textoImagen: function() { return '<img src="papa-rellena-paso4.webp" alt="Freír Papa Rellena" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🔥🧆✨</div>\'">'; }
+    }
+];
+
+const pasosTresLeches = [
+    {
+        titulo: { es: "¡Preparamos las Tres Leches!", en: "Mixing the Three Milks!", fr: "Mélange des Trois Laits !" },
+        metodo: { es: "🥛 Mezcla Cremosa", en: "🥛 Creamy Mixture", fr: "🥛 Mélange Onctueux" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "En una jarra o tazón grande, mezclamos la leche condensada <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong>, la crema de leche <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong>, la leche entera <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong> y la esencia de vainilla. Batimos de 2 a 3 min hasta tener una crema líquida y homogénea."
+            : "In a pitcher or bowl, whisk together condensed milk <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong>, heavy cream <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong>, whole milk <strong>(" + Math.ceil(50 * porcionesElegidas) + " ml)</strong>, and vanilla extract for 2 to 3 min until smooth.";
+        },
+        textoImagen: function() { return '<img src="tresleches-paso1.webp" alt="Mezcla de Tres Leches" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥛🥄✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Alistamos la base de bizcochuelo!", en: "Preparing the sponge base!", fr: "Préparez la génoise de base !" },
+        metodo: { es: "🥮 Capa Base", en: "🥮 Base Layer", fr: "🥮 Couche de Base" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Acomodamos el bizcochuelo o galletas <strong>(" + (60 * porcionesElegidas) + " g)</strong> en el fondo de un molde o vasitos individuales, cubriendo bien la superficie."
+            : "Arrange sponge cake or crackers <strong>(" + (60 * porcionesElegidas) + " g)</strong> at the bottom of a dish or glasses, covering the base evenly.";
+        },
+        textoImagen: function() { return '<img src="tresleches-paso2.webp" alt="Base de Bizcochuelo" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥮🧁✨</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡El baño y absorción perfecta!", en: "Soaking with the milk mixture!", fr: "Imbibez parfaitement le gâteau !" },
+        metodo: { es: "💦 Remojo Profundo", en: "💦 Milk Soak", fr: "💦 Imbibition" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Hacemos pequeños hoyitos por la superficie del bizcochuelo con un tenedor. Vertemos despacio la mezcla de tres leches asegurándonos de que absorba cada rincón."
+            : "Poke small holes all over the sponge cake with a fork. Slowly pour the three milks mixture over the cake until fully absorbed.";
+        },
+        textoImagen: function() { return '<img src="tresleches-paso3.webp" alt="Baño de Tres Leches" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🥛🍰💧</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Al refrigerador a tomar cuerpo!", en: "Chilling in the fridge!", fr: "Repos au réfrigérateur !" },
+        metodo: { es: "❄️ Frío y Firmeza", en: "❄️ Chill Time", fr: "❄️ Temps au Frais" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Cubrimos con papel film y llevamos a la nevera durante mínimo 2 a 3 horas (idealmente de un día para otro) para que tome consistencia firme y cremosa."
+            : "Cover with plastic wrap and refrigerate for at least 2 to 3 hours (overnight is best) to set into a firm and creamy texture.";
+        },
+        textoImagen: function() { return '<img src="tresleches-paso4.webp" alt="Refrigerar Postre" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>❄️🍰⌛</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Decoración y toque final!", en: "Decorating and final touch!", fr: "Décoration et finition !" },
+        metodo: { es: "👑 Presentación Dulce", en: "👑 Sweet Topping", fr: "👑 Finition Gourmande" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Sacamos del frío y cubrimos con crema chantilly batida o merengue. Espolvoreamos canela molida por encima y coronamos con cerezas rojas. ¡Servimos bien frío!"
+            : "Remove from fridge and top with whipped cream or meringue. Dust with ground cinnamon and crown with maraschino cherries. Serve chilled!";
+        },
+        textoImagen: function() { return '<img src="tresleches-paso5.webp" alt="Decoración Final Tres Leches" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🍰🍒✨</div>\'">'; }
+    }
+];
+
+const pasosChimichurri = [
+    {
+        titulo: { es: "¡Alistamos las hierbas y el ajo!", en: "Gathering fresh herbs and garlic!", fr: "Préparation des herbes fraîches et de l'ail !" },
+        metodo: { es: "🌿 Hierbas Frescas", en: "🌿 Fresh Herbs", fr: "🌿 Herbes Fraîches" },
+        descripcion: function() {
+            var dientesAjo = Math.ceil(1 * porcionesElegidas);
+            var hojasLaurel = Math.ceil(1 * porcionesElegidas);
+            var txtAjo = idiomaActual === 'es' ? (dientesAjo === 1 ? "diente" : "dientes") : (dientesAjo === 1 ? "clove" : "cloves");
+            var txtLau = idiomaActual === 'es' ? (hojasLaurel === 1 ? "hoja" : "hojas") : (hojasLaurel === 1 ? "leaf" : "leaves");
+            return idiomaActual === 'es'
+            ? "Alistamos el ajo <strong>(" + dientesAjo + " " + txtAjo + ")</strong>, perejil fresco <strong>(" + (0.25 * porcionesElegidas) + " manojos)</strong>, laurel <strong>(" + hojasLaurel + " " + txtLau + ")</strong>, cebolla junca y romero fresco. *Usar hierbas bien frescas es el secreto.*"
+            : "Gather garlic <strong>(" + dientesAjo + " " + txtAjo + ")</strong>, fresh parsley <strong>(" + (0.25 * porcionesElegidas) + " bunches)</strong>, bay leaves <strong>(" + hojasLaurel + " " + txtLau + ")</strong>, green onion, and fresh rosemary. *Fresh herbs are key!*";
+        },
+        textoImagen: function() { return '<img src="chimichurri-paso1.webp" alt="Ingredientes Chimichurri" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🌿🧄🪵</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Licuamos todo con agua mínima!", en: "Blending with a splash of water!", fr: "Mixage rapide avec un trait d'eau !" },
+        metodo: { es: "🌪️ Licuado Ligero", en: "🌪️ Pulse Blending", fr: "🌪️ Mixage Léger" },
+        descripcion: function() {
+            return idiomaActual === 'es'
+            ? "Agregamos a la licuadora el perejil, ajos, laurel, romero, cebolla y sal. Vertemos únicamente un tris minúsculo de agua <strong>(" + parseFloat((0.01 * porcionesElegidas).toFixed(2)) + " L)</strong> para triturar en pulsos sin volverlo puré."
+            : "Place parsley, garlic, bay leaves, rosemary, onion, and salt in blender. Add a tiny splash of water <strong>(" + parseFloat((0.01 * porcionesElegidas).toFixed(2)) + " L)</strong> to blend in short pulses without turning into mush.";
+        },
+        textoImagen: function() { return '<img src="chimichurri-paso2.webp" alt="Licuado con agua mínima" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🌪️🌿💧</div>\'">'; }
+    },
+    {
+        titulo: { es: "¡Al frasquito y baño de aceites!", en: "Jar storage and oil infusion!", fr: "Conservation en bocal et huile d'olive !" },
+        metodo: { es: "🫙 Maduración", en: "🫙 Oil Infusion", fr: "🫙 Infusion d'Huile" },
+        descripcion: function() {
+            var cdasOliva = Math.ceil(1 * porcionesElegidas);
+            var txtOli = idiomaActual === 'es' ? (cdasOliva === 1 ? "cucharada" : "cucharadas") : (cdasOliva === 1 ? "tbsp" : "tbsp");
+            return idiomaActual === 'es'
+            ? "Pasamos la mezcla triturada a un frasquito de vidrio. Cubrimos las hierbas vertiendo aceite de girasol <strong>(" + parseFloat((0.04 * porcionesElegidas).toFixed(2)) + " L)</strong> y aceite de oliva <strong>(" + cdasOliva + " " + txtOli + ")</strong>. Revolvemos bien y dejamos reposar."
+            : "Transfer mixture to a glass jar. Cover herbs with sunflower oil <strong>(" + parseFloat((0.04 * porcionesElegidas).toFixed(2)) + " L)</strong> and olive oil <strong>(" + cdasOliva + " " + txtOli + ")</strong>. Stir well and let sit.";
+        },
+        textoImagen: function() { return '<img src="chimichurri-paso3.webp" alt="Infusión de aceite en frasco" decoding="async" loading="lazy" onerror="this.outerHTML=\'<div style=\\\'font-size: 64px; display: flex; align-items: center; justify-content: center; height: 100%;\\\'>🫙🫒✨</div>\'">'; }
+    }
+];
+
+const pasosAji = [
+    {
+        titulo: { es: "¡Alistamos el picante casero!", en: "We get the homemade hot sauce ready!", fr: "Préparation de la sauce pimentée !" },
+        metodo: { es: "🌶️ El Toque Picante", en: "🌶️ The Spicy Touch", fr: "🌶️ Touche Pimentée" },
+        descripcion: function() {
+            var unCebolla = Math.ceil(0.2 * porcionesElegidas);
+            var unTomate = Math.ceil(0.2 * porcionesElegidas);
+            var txtCebolla = idiomaActual === 'es' ? (unCebolla === 1 ? "tallo" : "tallos") : (unCebolla === 1 ? "stalk" : "stalks");
+            var txtTomate = idiomaActual === 'es' ? (unTomate === 1 ? "tomate" : "tomates") : (unTomate === 1 ? "tomato" : "tomatoes");
+            return idiomaActual === 'es'
+            ? "Para un ají colombiano de verdad, alistamos cebolla larga <strong>(" + unCebolla + " " + txtCebolla + ")</strong>, tomate maduro <strong>(" + unTomate + " " + txtTomate + ")</strong>, cilantro fresco picado, agua, vinagre blanco, sal y ají al gusto."
+            : "For real Colombian ají, gather green onion <strong>(" + unCebolla + " " + txtCebolla + ")</strong>, ripe tomato <strong>(" + unTomate + " " + txtTomate + ")</strong>, fresh cilantro, water, vinegar, salt, and hot pepper.";
+        },
+        textoImagen: function() { return '<img src="aji-paso1.webp" alt="Ingredientes del Ají" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Picamos y armamos el ají!", en: "We chop and build the ají!", fr: "Hachez et mélangez le piment ají !" },
+        metodo: { es: "🥄 Mezcla de Sabor", en: "🥄 Flavor Mix", fr: "🥄 Mélange de Saveurs" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Picamos la cebolla, el tomate y el cilantro ultra finos. En un tazón mezclamos los vegetales, agregamos vinagre, agua, sal y picante al gusto. ¡Dejamos reposar 10 min!"
+            : "Chop onion, tomato, and cilantro ultra fine. In a bowl mix vegetables, add vinegar, water, salt, and hot pepper to taste. Let rest for 10 min!";
+        },
+        textoImagen: function() { return '<img src="aji-paso2.webp" alt="Preparación del Ají" decoding="async" loading="lazy">'; }
+    }
+];
+
+const pasosPatacon = [
+    {
+        titulo: { es: "¡Cortamos los plátanos gruesos!", en: "We slice thick plantain rounds!", fr: "Coupez de larges rondelles de banane !" },
+        metodo: { es: "🍌 Corte Perfecto", en: "🍌 Thick Cuts", fr: "🍌 Coupe Épaisse" },
+        descripcion: function() {
+            var unPlatano = Math.ceil(0.5 * porcionesElegidas);
+            var txtPlatano = idiomaActual === 'es' ? (unPlatano === 1 ? "unidad" : "unidades") : (unPlatano === 1 ? "unit" : "units");
+            return idiomaActual === 'es'
+            ? "Pelamos el plátano verde <strong>(" + unPlatano + " " + txtPlatano + ")</strong> haciendo cortes a lo largo de la cáscara. Cortamos trozos gruesos de 3 a 4 cm de grosor."
+            : "Peel green plantain <strong>(" + unPlatano + " " + txtPlatano + ")</strong>. Slice into thick rounds of about 3 to 4 cm (1.5 inches).";
+        },
+        textoImagen: function() { return '<img src="patacon-paso1.webp" alt="Cortar Plátano" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Primera fritura suave!", en: "First gentle fry!", fr: "Première friture douce !" },
+        metodo: { es: "🔥 Pochar la Carne", en: "🔥 Soft Frying", fr: "🔥 Cuisson Douce" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Calentamos abundante aceite a fuego medio-bajo. Freímos los trozos de plátano 3 a 4 min por lado hasta que estén suaves por dentro sin dorarse. Sacamos y escurrimos."
+            : "Heat oil over medium-low heat. Fry plantain chunks 3 to 4 min per side until tender inside without browning. Drain on paper towels.";
+        },
+        textoImagen: function() { return '<img src="patacon-paso2.webp" alt="Primera Fritura Patacón" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡El arte del pisa'o!", en: "The art of the smash!", fr: "L'art d'aplatir le patacón !" },
+        metodo: { es: "💥 Aplastado Dorado", en: "💥 Golden Smash", fr: "💥 Aplatissage" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "En caliente, colocamos cada trozo entre dos plásticos. Con una pataconera o tabla, pisamos firmemente con un solo movimiento uniforme hasta dejarlo plano."
+            : "While hot, place chunk between plastic sheets. Using a press or board, smash firmly with one smooth motion into a flat disc.";
+        },
+        textoImagen: function() { return '<img src="patacon-paso3.webp" alt="Aplastado Dorado" decoding="async" loading="lazy">'; }
+    },
+    {
+        titulo: { es: "¡Fritura final crocante!", en: "Final crispy fry!", fr: "Friture finale croustillante !" },
+        metodo: { es: "✨ Crocante de Oro", en: "✨ Crispy Finish", fr: "✨ Croustillant Doré" },
+        descripcion: function() { return idiomaActual === 'es'
+            ? "Subimos el aceite a fuego alto y sumergimos los patacones pisados por 1 a 2 min hasta que estén dorados y super crocantes. Espolvoreamos sal y ajo al gusto."
+            : "Raise oil heat to high and submerge flattened patacones for 1 to 2 min until golden and extra crispy. Sprinkle with salt and garlic.";
+        },
+        textoImagen: function() { return '<img src="patacon-paso4.webp" alt="Fritura Final Crocante" decoding="async" loading="lazy">'; }
+    }
+];
+
+function irAIngredientesAji() {
+    preparandoAji = true;
+    preparandoPatacon = false;
+    preparandoChimichurri = false;
+
+    var tituloReceta = document.getElementById('titulo-receta-calculada');
+    var lblTiempo = document.getElementById('lbl-tiempo');
+    var lblPorciones = document.getElementById('lbl-porciones');
+    var listaIngredientes = document.getElementById('lista-ingredientes');
+
+    tituloReceta.innerText = idiomaActual === 'es' ? "Ají Casero Colombiano" : (idiomaActual === 'fr' ? "Sauce Pimentée Ají" : "Homemade Colombian Ají");
+    lblTiempo.innerText = "⏱️ 10m";
+    lblPorciones.innerText = idiomaActual === 'es' ? "👥 " + porcionesElegidas + " personas" : "👥 " + porcionesElegidas + " people";
+    document.getElementById('selector-masa-container').style.display = 'none';
+
+    listaIngredientes.innerHTML = "";
+
+    ingredientesAji.forEach(function(ing) {
+        var nombre = idiomaActual === 'es' ? ing.nombreEs : ing.nombreEn;
+        var formatInfo = formatearCantidad(ing.cantidadBase, porcionesElegidas, ing.id, ing.unidadEs, ing.unidadEn);
+        var cantidadCalculada = formatInfo.cant;
+        var unidad = formatInfo.uni;
+
+        var animatedHTML = "";
+
+        if (ing.id === "cebolla") {
+            animatedHTML = '<div class="onion-chopped-container"><span class="onion-slice on-s1">🧅</span><span class="onion-slice on-s2">🧅</span><span class="onion-slice on-s3">🧅</span></div>';
+        } else if (ing.id === "tomate") {
+            animatedHTML = '<div class="tomato-chopped-container"><span class="tomato-piece tom-p1">🍅</span><span class="tomato-piece tom-p2">🍅</span></div>';
+        } else if (ing.id === "cilantro") {
+            animatedHTML = '<div class="cilantro-chopped-container"><span class="cilantro-piece cil-p1">🌿</span><span class="cilantro-piece cil-p2">🌿</span></div>';
+        } else if (ing.id === "agua") {
+            animatedHTML = '<div class="water-container">💧</div>';
+        }
+
+        var itemHTML = '<div class="ingrediente-item"><div class="ingrediente-nombre-icono"><div class="ingrediente-icono">' + animatedHTML + '</div><span>' + (nombre.charAt(0).toUpperCase() + nombre.slice(1)) + '</span></div><strong>' + cantidadCalculada + ' ' + unidad + '</strong></div>';
+        listaIngredientes.innerHTML += itemHTML;
+    });
+
+    irPantalla('screen-receta');
+}
+
+function irAIngredientesPatacon() {
+    preparandoPatacon = true;
+    preparandoAji = false;
+    preparandoChimichurri = false;
+
+    var tituloReceta = document.getElementById('titulo-receta-calculada');
+    var lblTiempo = document.getElementById('lbl-tiempo');
+    var lblPorciones = document.getElementById('lbl-porciones');
+    var listaIngredientes = document.getElementById('lista-ingredientes');
+
+    tituloReceta.innerText = idiomaActual === 'es' ? "Patacón Pisao Crocante" : (idiomaActual === 'fr' ? "Patacón Croustillant" : "Crispy Smashed Plantain");
+    lblTiempo.innerText = "⏱️ 15m";
+    lblPorciones.innerText = idiomaActual === 'es' ? "👥 " + porcionesElegidas + " personas" : "👥 " + porcionesElegidas + " people";
+    document.getElementById('selector-masa-container').style.display = 'none';
+
+    listaIngredientes.innerHTML = "";
+
+    ingredientesPatacon.forEach(function(ing) {
+        var nombre = idiomaActual === 'es' ? ing.nombreEs : ing.nombreEn;
+        var formatInfo = formatearCantidad(ing.cantidadBase, porcionesElegidas, ing.id, ing.unidadEs, ing.unidadEn);
+        var cantidadCalculada = formatInfo.cant;
+        var unidad = formatInfo.uni;
+
+        var animatedHTML = "";
+
+        if (ing.id === "platano") {
+            animatedHTML = '<div class="plantain-smash-container"><span class="plantain-icon">🍌</span></div>';
+        } else if (ing.id === "aceite") {
+            animatedHTML = '<div class="oil-fry-container"><span class="oil-icon">🍳</span></div>';
+        } else if (ing.id === "sal") {
+            animatedHTML = '<div class="salt-container"><span class="salt-shaker">🧂</span><div class="salt-grain sg1"></div><div class="salt-grain sg2"></div></div>';
+        }
+
+        var itemHTML = '<div class="ingrediente-item"><div class="ingrediente-nombre-icono"><div class="ingrediente-icono">' + animatedHTML + '</div><span>' + (nombre.charAt(0).toUpperCase() + nombre.slice(1)) + '</span></div><strong>' + cantidadCalculada + ' ' + unidad + '</strong></div>';
+        listaIngredientes.innerHTML += itemHTML;
+    });
+
+    irPantalla('screen-receta');
+}
+
+function irAIngredientesChimichurri() {
+    preparandoChimichurri = true;
+    preparandoAji = false;
+    preparandoPatacon = false;
+
+    var tituloReceta = document.getElementById('titulo-receta-calculada');
+    var lblTiempo = document.getElementById('lbl-tiempo');
+    var lblPorciones = document.getElementById('lbl-porciones');
+    var listaIngredientes = document.getElementById('lista-ingredientes');
+
+    tituloReceta.innerText = idiomaActual === 'es' ? "Chimichurri Casero de Hierbas" : (idiomaActual === 'fr' ? "Chimichurri Maison" : "Homemade Herb Chimichurri");
+    lblTiempo.innerText = "⏱️ 10m";
+    lblPorciones.innerText = idiomaActual === 'es' ? "👥 " + porcionesElegidas + " personas" : "👥 " + porcionesElegidas + " people";
+    document.getElementById('selector-masa-container').style.display = 'none';
+
+    listaIngredientes.innerHTML = "";
+
+    ingredientesChimichurri.forEach(function(ing) {
+        var nombre = idiomaActual === 'es' ? ing.nombreEs : ing.nombreEn;
+        var formatInfo = formatearCantidad(ing.cantidadBase, porcionesElegidas, ing.id, ing.unidadEs, ing.unidadEn);
+        var cantidadCalculada = formatInfo.cant;
+        var unidad = formatInfo.uni;
+
+        var animatedHTML = "";
+
+        if (ing.id === "ajo") {
+            animatedHTML = '🧄';
+        } else if (ing.id === "perejil" || ing.id === "laurel" || ing.id === "romero") {
+            animatedHTML = '<div class="cilantro-chopped-container"><span class="cilantro-piece cil-p1">🌿</span><span class="cilantro-piece cil-p2">🌿</span></div>';
+        } else if (ing.id === "cebolla_junca") {
+            animatedHTML = '<div class="onion-container"><span class="onion-body">🧅</span><span class="onion-layer">🧅</span></div>';
+        } else if (ing.id === "aceite_girasol" || ing.id === "aceite_oliva") {
+            animatedHTML = '<div class="oil-fry-container"><span class="oil-icon">🫒</span></div>';
+        } else if (ing.id === "agua_minima") {
+            animatedHTML = '<div class="water-container">💧</div>';
+        } else {
+            animatedHTML = "🥗";
+        }
+
+        var itemHTML = '<div class="ingrediente-item"><div class="ingrediente-nombre-icono"><div class="ingrediente-icono">' + animatedHTML + '</div><span>' + (nombre.charAt(0).toUpperCase() + nombre.slice(1)) + '</span></div><strong>' + cantidadCalculada + ' ' + unidad + '</strong></div>';
+        listaIngredientes.innerHTML += itemHTML;
+    });
+
+    irPantalla('screen-receta');
+}
+
+function generarReceta() {
+    var tituloReceta = document.getElementById('titulo-receta-calculada');
+    var lblTiempo = document.getElementById('lbl-tiempo');
+    var lblPorciones = document.getElementById('lbl-porciones');
+    var listaIngredientes = document.getElementById('lista-ingredientes');
+
+    if (recetaElegida === "Sancocho Tradicional") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Sancocho Tradicional" : (idiomaActual === 'fr' ? "Sancocho Traditionnel" : "Traditional Sancocho");
+        lblTiempo.innerText = "⏱️ 1h 20m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Empanadas Crujientes") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Empanadas Crujientes" : (idiomaActual === 'fr' ? "Empanadas Croupillantes" : "Crispy Empanadas");
+        lblTiempo.innerText = "⏱️ 1h 10m";
+        document.getElementById('selector-masa-container').style.display = 'flex';
+    } else if (recetaElegida === "Cocadas Colombianas") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Cocadas Colombianas" : (idiomaActual === 'fr' ? "Cocadas Colombiennes" : "Colombian Cocadas");
+        lblTiempo.innerText = "⏱️ 30m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Coctel de Camarones") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Coctel de Camarones" : (idiomaActual === 'fr' ? "Cocktail de Crevettes" : "Shrimp Cocktail");
+        lblTiempo.innerText = "⏱️ 15m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Bandeja Paisa") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Bandeja Paisa Tradicional" : (idiomaActual === 'fr' ? "Bandeja Paisa" : "Traditional Paisa Tray");
+        lblTiempo.innerText = "⏱️ 1h 45m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Arroz con Leche") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Arroz con Leche Cremoso" : (idiomaActual === 'fr' ? "Riz au Lait Crémeux" : "Creamy Rice Pudding");
+        lblTiempo.innerText = "⏱️ 40m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Ajiaco Santafereño") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Ajiaco Santafereño tradicional" : (idiomaActual === 'fr' ? "Soupe Ajiaco" : "Traditional Ajiaco Soup");
+        lblTiempo.innerText = "⏱️ 1h 15m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Papa Rellena") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Papa Rellena Colombiana" : (idiomaActual === 'fr' ? "Pomme de Terre Farcie" : "Colombian Stuffed Potato");
+        lblTiempo.innerText = "⏱️ 55m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    } else if (recetaElegida === "Postre Tres Leches") {
+        tituloReceta.innerText = idiomaActual === 'es' ? "Postre Tres Leches Tradicional" : (idiomaActual === 'fr' ? "Gâteau Tres Leches" : "Traditional Tres Leches Cake");
+        lblTiempo.innerText = "⏱️ 3h 15m";
+        document.getElementById('selector-masa-container').style.display = 'none';
+    }
+
+    lblPorciones.innerText = idiomaActual === 'es' ? "👥 " + porcionesElegidas + " personas" : "👥 " + porcionesElegidas + " people";
+
+    var ingBase = (recetaElegida === "Sancocho Tradicional") ? ingredientesBaseSancocho : 
+    (recetaElegida === "Empanadas Crujientes") ? ingredientesBaseEmpanadas :
+    (recetaElegida === "Cocadas Colombianas") ? ingredientesBaseCocadas :
+    (recetaElegida === "Coctel de Camarones") ? ingredientesBaseCoctel :
+    (recetaElegida === "Bandeja Paisa") ? ingredientesBaseBandeja :
+    (recetaElegida === "Arroz con Leche") ? ingredientesBaseArroz :
+    (recetaElegida === "Ajiaco Santafereño") ? ingredientesBaseAjiaco :
+    (recetaElegida === "Papa Rellena") ? ingredientesBasePapaRellena :
+    ingredientesBaseTresLeches;
+
+    listaIngredientes.innerHTML = "";
+
+    ingBase.forEach(function(ing) {
+        var nombre = idiomaActual === 'es' ? ing.nombreEs : ing.nombreEn;
+
+        if (ing.id === "proteina") {
+            nombre = getProteinaNombre();
+        }
+        if (ing.id === "masa" && recetaElegida === "Empanadas Crujientes") {
+            if (tipoMasa === "trigo") {
+                nombre = idiomaActual === 'es' ? "Harina de trigo" : (idiomaActual === 'fr' ? "Farine de blé" : "Wheat flour");
+            } else {
+                nombre = idiomaActual === 'es' ? "Masa de maíz" : (idiomaActual === 'fr' ? "Pâte de maïs" : "Corn dough");
+            }
+        }
+
+        var formatInfo = formatearCantidad(ing.cantidadBase, porcionesElegidas, ing.id, ing.unidadEs, ing.unidadEn);
+        var cantidadCalculada = formatInfo.cant;
+        var unidad = formatInfo.uni;
+
+        var animatedHTML = "";
+        if (ing.id === "proteina") {
+            var protLC = proteinaElegida.toLowerCase();
+            if (protLC.includes('pollo')) {
+                animatedHTML = '<span class="steam-effect">🍗</span>';
+            } else if (protLC.includes('carne') || protLC.includes('res')) {
+                if (recetaElegida === "Empanadas Crujientes" || recetaElegida === "Papa Rellena") {
+                    animatedHTML = '<div class="minced-beef-container"><span class="beef-bit mb-1">🥩</span><span class="beef-bit mb-2">🥩</span><span class="beef-bit mb-3">🥩</span></div>';
+                } else {
+                    animatedHTML = '<span class="steam-effect">🥩</span>';
+                }
+            } else if (protLC.includes('cerdo')) {
+                animatedHTML = '<span class="steam-effect">🥓</span>';
+            } else if (protLC.includes('pescado')) {
+                animatedHTML = '<span class="fish-effect">🐟</span>';
+            } else if (protLC.includes('vegetales')) {
+                animatedHTML = '<div class="veg-mix-container"><span class="veg-item veg-1">🥦</span><span class="veg-item veg-2">🥕</span><span class="veg-item veg-3">🥬</span></div>';
+            }
+        } else if (ing.id === "platano") {
+            animatedHTML = '<div class="banana-container"><span class="banana-body">🍌</span><span class="banana-peel">🍌</span></div>';
+        } else if (ing.id === "yuca") {
+            animatedHTML = '<div class="yuca-container"><span class="yuca-slice yuca-s1">🍠</span><span class="yuca-slice yuca-s2">🍠</span><span class="yuca-slice yuca-s3">🍠</span></div>';
+        } else if (ing.id === "mazorca") {
+            animatedHTML = '<div class="corn-container"><span class="corn-core">🌽</span><span class="corn-leaf-l">🌿</span><span class="corn-leaf-r">🌿</span></div>';
+        } else if (ing.id === "papa" || ing.id === "papa_sabanera" || ing.id === "papa_pastusa" || ing.id === "papa_criolla") {
+            animatedHTML = '<div class="potato-container"><span class="potato-base">🥔</span><span class="potato-peel-line"></span></div>';
+        } else if (ing.id === "cebolla") {
+            animatedHTML = '<div class="onion-container"><span class="onion-body">🧅</span><span class="onion-layer">🧅</span></div>';
+        } else if (ing.id === "agua") {
+            animatedHTML = '<div class="water-container">💧</div>';
+        } else if (ing.id === "masa") {
+            if (recetaElegida === "Empanadas Crujientes" && tipoMasa === "trigo") {
+                animatedHTML = '<div class="wheat-container"><span class="wheat-base">🥣</span><div class="dust-particle d1" style="background: #FFF;"></div><div class="dust-particle d2" style="background: #FFF;"></div><div class="dust-particle d3" style="background: #FFF;"></div><div class="dust-particle d4" style="background: #FFF;"></div><div class="dust-particle d5" style="background: #FFF;"></div></div>';
+            } else {
+                animatedHTML = '<div class="flour-container"><span class="flour-base">🌾</span><div class="dust-particle d1"></div><div class="dust-particle d2"></div><div class="dust-particle d3"></div><div class="dust-particle d4"></div><div class="dust-particle d5"></div></div>';
+            }
+        } else if (ing.id === "coco") {
+            animatedHTML = '<div class="coco-container"><span class="coco-base">🥥</span><div class="flake f1"></div><div class="flake f2"></div><div class="flake f3"></div></div>';
+        } else if (ing.id === "leche_condensada" || ing.id === "crema_leche") {
+            animatedHTML = '<div class="milk-container"><span class="milk-glass">🥛</span><div class="milk-stream"></div></div>';
+        } else if (ing.id === "vainilla") {
+            animatedHTML = '<div class="vanilla-container"><span class="vanilla-spoon">🥄</span><div class="vanilla-drop"></div></div>';
+        } else if (ing.id === "sal") {
+            animatedHTML = '<div class="salt-container"><span class="salt-shaker">🧂</span><div class="salt-grain sg1"></div><div class="salt-grain sg2"></div></div>';
+        } else if (ing.id === "camaron") {
+            animatedHTML = '<div class="shrimp-container"><span class="shrimp-body">🍤</span></div>';
+        } else if (ing.id === "salsa_tomate") {
+            animatedHTML = '<div class="sauce-container"><span class="sauce-bottle">🥫</span><div class="sauce-drop red"></div></div>';
+        } else if (ing.id === "mayonesa") {
+            animatedHTML = '<div class="sauce-container"><span class="sauce-bottle">🥛</span><div class="sauce-drop white"></div></div>';
+        } else if (ing.id === "cebolla_morada") {
+            animatedHTML = '<div class="onion-red-container"><span class="onion-red-slice ors-1">🧅</span><span class="onion-red-slice ors-2">🧅</span></div>';
+        } else if (ing.id === "limon") {
+            animatedHTML = '<div class="lemon-container"><span class="lemon-body">🍋</span><div class="lemon-juice"></div></div>';
+        } else if (ing.id === "galletas") {
+            animatedHTML = '<div class="cracker-container"><span class="cracker-piece crk-1">🫓</span><span class="cracker-piece crk-2">🫓</span></div>';
+        } else if (ing.id === "frijoles") {
+            animatedHTML = '<div class="beans-container"><span class="beans-base">🫘</span></div>';
+        } else if (ing.id === "chicharron") {
+            animatedHTML = '<div class="chicharron-container"><span class="chicharron-icon">🥓</span></div>';
+        } else if (ing.id === "carne_molida") {
+            animatedHTML = '<div class="minced-beef-container"><span class="beef-bit mb-1">🥩</span><span class="beef-bit mb-2">🥩</span><span class="beef-bit mb-3">🥩</span></div>';
+        } else if (ing.id === "arroz" || ing.id === "arroz_dulce") {
+            animatedHTML = '<span class="steam-effect">🍚</span>';
+        } else if (ing.id === "platano_maduro") {
+            animatedHTML = '<div class="banana-container"><span class="banana-body">🍌</span></div>';
+        } else if (ing.id === "huevo" || ing.id === "huevo_crudo") {
+            animatedHTML = '<div class="egg-container"><span class="egg-icon">🍳</span></div>';
+        } else if (ing.id === "arepa") {
+            animatedHTML = '<div class="cracker-container"><span class="cracker-piece">🫓</span></div>';
+        } else if (ing.id === "aguacate") {
+            animatedHTML = '<div class="avocado-container"><span class="avocado-icon">🥑</span></div>';
+        } else if (ing.id === "leche_entera") {
+            animatedHTML = '<div class="milk-container"><span class="milk-glass">🥛</span><div class="milk-stream"></div></div>';
+        } else if (ing.id === "canela_rama") {
+            animatedHTML = '<div class="cinnamon-container"><span class="cinnamon-icon">🪵</span></div>';
+        } else if (ing.id === "uvas_pasas") {
+            animatedHTML = '<div class="raisin-container"><span class="raisin-icon">🍇</span></div>';
+        } else if (ing.id === "guascas") {
+            animatedHTML = '<div class="cilantro-chopped-container"><span class="cilantro-piece cil-p1">🌿</span><span class="cilantro-piece cil-p2">🌿</span></div>';
+        } else if (ing.id === "alcaparras") {
+            animatedHTML = '<div class="capers-container"><span class="capers-icon">🫒</span></div>';
+        } else if (ing.id === "harina_trigo") {
+            animatedHTML = '<div class="wheat-container"><span class="wheat-base">🥣</span></div>';
+        } else if (ing.id === "bizcochuelo") {
+            animatedHTML = '🍰';
+        } else {
+            animatedHTML = "🥗";
+        }
+
+        var itemHTML = '<div class="ingrediente-item"><div class="ingrediente-nombre-icono"><div class="ingrediente-icono">' + animatedHTML + '</div><span>' + (nombre.charAt(0).toUpperCase() + nombre.slice(1)) + '</span></div><strong>' + cantidadCalculada + ' ' + unidad + '</strong></div>';
+        listaIngredientes.innerHTML += itemHTML;
+    });
+
+    irPantalla('screen-receta');
+}
+
+function seleccionarPorciones(cantidad, elementoBtn, event) {
+    if (event) event.stopPropagation();
+    if (elementoBtn.classList.contains('selected')) {
+        porcionesElegidas = 0;
+        elementoBtn.classList.remove('selected');
+    } else {
+        porcionesElegidas = Math.max(0, cantidad);
+        document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+        elementoBtn.classList.add('selected');
+        var btnMas = document.getElementById('btn-mas');
+        if (btnMas) btnMas.innerText = '+';
+    }
+    actualizarPreviewPersonas(porcionesElegidas);
+}
+
+function seleccionarProteina(nombreProteina, elementoCard) {
+    if (elementoCard.classList.contains('selected')) {
+        proteinaElegida = "";
+        elementoCard.classList.remove('selected');
+    } else {
+        proteinaElegida = nombreProteina;
+        document.querySelectorAll('.proteina-card').forEach(function(card) { card.classList.remove('selected'); });
+        elementoCard.classList.add('selected');
+    }
+}
+
+function elegirReceta(nombreReceta, nivelRequerido, event) {
+    if (event) event.stopPropagation();
+
+    nivelRequeridoEnModal = nivelRequerido;
+
+    if (nivelRequerido === 'vip' && nivelUsuario < 2) {
+        document.getElementById('upsell-icon').innerText = '👑';
+        document.getElementById('upsell-titulo').innerText = 'Receta Nivel VIP';
+        document.getElementById('upsell-mensaje').innerText = 'Esta receta requiere el PIN VIP (6 Recetas). Ingresa tu clave aquí:';
+        document.getElementById('custom-upsell').style.display = 'flex';
+        setTimeout(function() { var inp = document.getElementById('input-pin-upgrade'); if (inp) { inp.focus(); inp.value = ""; } }, 100);
+        return;
+    }
+
+    if (nivelRequerido === 'premium' && nivelUsuario < 3) {
+        document.getElementById('upsell-icon').innerText = '💎';
+        document.getElementById('upsell-titulo').innerText = 'Receta Nivel Premium';
+        document.getElementById('upsell-mensaje').innerText = 'Esta receta requiere el PIN Premium All-Access (9 Recetas). Ingresa tu clave aquí:';
+        document.getElementById('custom-upsell').style.display = 'flex';
+        setTimeout(function() { var inp = document.getElementById('input-pin-upgrade'); if (inp) { inp.focus(); inp.value = ""; } }, 100);
+        return;
+    }
+
+    recetaElegida = nombreReceta;
+    porcionesElegidas = 0;
+    tipoMasa = "maiz";
+    preparandoAji = false;
+    preparandoPatacon = false;
+    preparandoChimichurri = false;
+
+    if (recetaElegida === "Sancocho Tradicional") pasosActivos = pasosSancocho;
+    else if (recetaElegida === "Empanadas Crujientes") pasosActivos = pasosEmpanadas;
+    else if (recetaElegida === "Cocadas Colombianas") pasosActivos = pasosCocadas;
+    else if (recetaElegida === "Coctel de Camarones") pasosActivos = pasosCoctel;
+    else if (recetaElegida === "Bandeja Paisa") pasosActivos = pasosBandeja;
+    else if (recetaElegida === "Arroz con Leche") pasosActivos = pasosArroz;
+    else if (recetaElegida === "Ajiaco Santafereño") pasosActivos = pasosAjiaco;
+    else if (recetaElegida === "Papa Rellena") pasosActivos = pasosPapaRellena;
+    else if (recetaElegida === "Postre Tres Leches") pasosActivos = pasosTresLeches;
+
+    document.getElementById('btn-masa-maiz').classList.add('active');
+    document.getElementById('btn-masa-trigo').classList.remove('active');
+    document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+    document.getElementById('btn-mas').innerText = '+';
+    actualizarPreviewPersonas(0);
+    proteinaElegida = "";
+    document.querySelectorAll('.proteina-card').forEach(function(card) { card.classList.remove('selected'); });
+    traducirInterfaz();
+
+    precargarPasosReceta();
+    irPantalla('screen-personas');
+}
+
+function regresarAProteina() {
+    detenerTemporizador();
+    if (preparandoAji) {
+        preparandoAji = false;
+        pasosActivos = pasosEmpanadas;
+        pasoActual = 2; 
+        renderizarPaso();
+        irPantalla('screen-pasos');
+    } else if (preparandoPatacon) {
+        preparandoPatacon = false;
+        pasosActivos = pasosCoctel;
+        pasoActual = 3; 
+        renderizarPaso();
+        irPantalla('screen-pasos');
+    } else if (preparandoChimichurri) {
+        preparandoChimichurri = false;
+        pasosActivos = pasosPapaRellena;
+        pasoActual = 3; 
+        renderizarPaso();
+        irPantalla('screen-pasos');
+    } else if (recetaElegida === "Cocadas Colombianas" || recetaElegida === "Coctel de Camarones" || recetaElegida === "Bandeja Paisa" || recetaElegida === "Arroz con Leche" || recetaElegida === "Ajiaco Santafereño" || recetaElegida === "Postre Tres Leches") {
+        irPantalla('screen-personas');
+    } else {
+        proteinaElegida = "";
+        document.querySelectorAll('.proteina-card').forEach(function(card) { card.classList.remove('selected'); });
+        irPantalla('screen-proteina');
+    }
+}
+
+function regresarAPersonas() {
+    porcionesElegidas = 0;
+    document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+    document.getElementById('btn-mas').innerText = '+';
+    actualizarPreviewPersonas(0);
+    irPantalla('screen-personas');
+}
+
+function iniciarPasos() {
+    pasoActual = 0;
+    if (preparandoAji) {
+        pasosActivos = pasosAji;
+    } else if (preparandoPatacon) {
+        pasosActivos = pasosPatacon;
+    } else if (preparandoChimichurri) {
+        pasosActivos = pasosChimichurri;
+    } else if (recetaElegida === "Cocadas Colombianas") {
+        pasosActivos = pasosCocadas;
+    } else if (recetaElegida === "Coctel de Camarones") {
+        pasosActivos = pasosCoctel;
+    } else if (recetaElegida === "Bandeja Paisa") {
+        pasosActivos = pasosBandeja;
+    } else if (recetaElegida === "Arroz con Leche") {
+        pasosActivos = pasosArroz;
+    } else if (recetaElegida === "Ajiaco Santafereño") {
+        pasosActivos = pasosAjiaco;
+    } else if (recetaElegida === "Papa Rellena") {
+        pasosActivos = pasosPapaRellena;
+    } else if (recetaElegida === "Postre Tres Leches") {
+        pasosActivos = pasosTresLeches;
+    } else {
+        pasosActivos = (recetaElegida === "Sancocho Tradicional") ? pasosSancocho : pasosEmpanadas;
+    }
+    renderizarPaso();
+    irPantalla('screen-pasos');
+}
+
+/* ACTUALIZADOR DE LA BARRA DE PROGRESO DE FONDO EN EL TEMPORIZADOR */
+function actualizarBarraProgresoFondo() {
+    var box = document.getElementById('timer-box');
+    if (!box) return;
+    if (timerTiempoTotal <= 0) {
+        box.style.backgroundImage = 'none';
+        return;
+    }
+    
+    var porcentajeConsumido = Math.min(100, Math.max(0, ((timerTiempoTotal - timerTiempoRestante) / timerTiempoTotal) * 100));
+    box.style.backgroundImage = `linear-gradient(to right, #C2D6C2 ${porcentajeConsumido}%, transparent ${porcentajeConsumido}%)`;
+}
+
+/* DETECCIÓN E INYECCIÓN DEL TEMPORIZADOR CRONÓMETRO */
+function evaluarYTemporizadorPaso(textoPaso) {
+    detenerTemporizador();
+    timerTerminado = false;
+    var contenedor = document.getElementById('contenedor-temporizador-paso');
+    if (!contenedor) return;
+    contenedor.innerHTML = "";
+
+    var regex = /(\d+)\s*(?:a|-)?\s*(\d+)?\s*(?:minutos|min|m\b)/i;
+    var coincidencia = textoPaso.match(regex);
+
+    if (coincidencia) {
+        var minutos = coincidencia[2] ? parseInt(coincidencia[2]) : parseInt(coincidencia[1]);
+        if (!isNaN(minutos) && minutos > 0) {
+            timerTiempoSugeridoInicial = minutos * 60;
+            timerTiempoTotal = timerTiempoSugeridoInicial;
+            timerTiempoRestante = timerTiempoTotal;
+            
+            var htmlTimer = `
+                <div class="timer-container" id="timer-box" onclick="gestionarTapTemporizador(event)">
+                    <div class="timer-click-area" onclick="abrirPickerTiempo()" title="Toca para ajustar tiempo">
+                        <span class="timer-clock-icon" id="timer-icon">⏱️</span>
+                        <div>
+                            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #5B6B5B; display: block;">${idiomaActual === 'es' ? 'Temporizador (Toca)' : (idiomaActual === 'fr' ? 'Minuteur (Toucher)' : 'Timer (Tap)')}</span>
+                            <div class="timer-display" id="timer-display">${formatearTiempoMMSS(timerTiempoRestante)}</div>
+                        </div>
+                    </div>
+                    <div class="timer-controls">
+                        <button type="button" class="btn-timer" id="btn-start-timer" onclick="toggleTemporizador()">${idiomaActual === 'es' ? 'Iniciar' : (idiomaActual === 'fr' ? 'Démarrer' : 'Start')}</button>
+                        <button type="button" class="btn-timer btn-reset" onclick="reiniciarTemporizador()">↻</button>
+                    </div>
+                </div>
+            `;
+            contenedor.innerHTML = htmlTimer;
+            actualizarBarraProgresoFondo();
+        }
+    }
+}
+
+function gestionarTapTemporizador(event) {
+    if (timerTerminado) {
+        if (event) event.stopPropagation();
+        detenerTemporizador();
+        reiniciarTemporizador();
+    }
+}
+
+function habilitarArrastreWheel(el) {
+    let isDown = false;
+    let startY;
+    let scrollTop;
+
+    el.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startY = e.pageY - el.offsetTop;
+        scrollTop = el.scrollTop;
+    });
+
+    el.addEventListener('mouseleave', () => { isDown = false; });
+    el.addEventListener('mouseup', () => { isDown = false; });
+
+    el.addEventListener('mousemove', (e) => {
+        if(!isDown) return;
+        e.preventDefault();
+        const y = e.pageY - el.offsetTop;
+        const walk = (y - startY) * 1.5;
+        el.scrollTop = scrollTop - walk;
+    });
+}
+
+function construirRuedaValores(idContenedor, maxValor) {
+    var el = document.getElementById(idContenedor);
+    if (!el) return;
+    el.innerHTML = '<div class="wheel-spacer"></div>';
+    
+    for (var i = 0; i <= maxValor; i++) {
+        var valTxt = i < 10 ? '0' + i : '' + i;
+        var item = document.createElement('div');
+        item.className = 'wheel-item';
+        item.innerText = valTxt;
+        item.dataset.val = i;
+        el.appendChild(item);
+    }
+    el.innerHTML += '<div class="wheel-spacer"></div>';
+
+    el.onscroll = function() {
+        var index = Math.round(el.scrollTop / 40);
+        var items = el.querySelectorAll('.wheel-item');
+        items.forEach(function(it, idx) {
+            if (idx === index) it.classList.add('selected');
+            else it.classList.remove('selected');
+        });
+    };
+
+    habilitarArrastreWheel(el);
+}
+
+function abrirPickerTiempo() {
+    if (timerTerminado) {
+        detenerTemporizador();
+        reiniciarTemporizador();
+        return;
+    }
+    detenerTemporizador();
+    construirRuedaValores('wheel-minutos', 120);
+    construirRuedaValores('wheel-segundos', 59);
+
+    var minActual = Math.floor(timerTiempoRestante / 60);
+    var segActual = timerTiempoRestante % 60;
+
+    var modal = document.getElementById('modal-timer-picker');
+    if (modal) modal.style.display = 'flex';
+
+    setTimeout(function() {
+        var wMin = document.getElementById('wheel-minutos');
+        var wSeg = document.getElementById('wheel-segundos');
+        if (wMin) wMin.scrollTop = minActual * 40;
+        if (wSeg) wSeg.scrollTop = segActual * 40;
+    }, 50);
+}
+
+/* FUNCIÓN DE FLECHAS TOTALMENTE CORREGIDA */
+function ajustarRuedaPaso(idContenedor, direccion) {
+    if (idContenedor === 'minutos') idContenedor = 'wheel-minutos';
+    if (idContenedor === 'segundos') idContenedor = 'wheel-segundos';
+
+    const contenedor = document.getElementById(idContenedor);
+    if (!contenedor) return;
+
+    const alturaItem = 40;
+    const posicionActual = contenedor.scrollTop;
+    const itemActual = Math.round(posicionActual / alturaItem);
+    const nuevoItem = itemActual + direccion;
+
+    if (nuevoItem < 0) return;
+
+    contenedor.scrollTop = nuevoItem * alturaItem;
+    contenedor.dispatchEvent(new Event('scroll'));
+}
+
+function fijarPreajusteRueda(minutos, segundos) {
+    var wMin = document.getElementById('wheel-minutos');
+    var wSeg = document.getElementById('wheel-segundos');
+    if (wMin) wMin.scrollTop = minutos * 40;
+    if (wSeg) wSeg.scrollTop = segundos * 40;
+}
+
+function cerrarPickerTiempo() {
+    var modal = document.getElementById('modal-timer-picker');
+    if (modal) modal.style.display = 'none';
+}
+
+function guardarTiempoPicker() {
+    var wMin = document.getElementById('wheel-minutos');
+    var wSeg = document.getElementById('wheel-segundos');
+
+    var idxMin = Math.round(wMin.scrollTop / 40);
+    var idxSeg = Math.round(wSeg.scrollTop / 40);
+
+    var totalSeg = (idxMin * 60) + idxSeg;
+
+    if (totalSeg > 0) {
+        timerTiempoTotal = totalSeg;
+        timerTiempoRestante = totalSeg;
+
+        var display = document.getElementById('timer-display');
+        if (display) display.innerText = formatearTiempoMMSS(timerTiempoRestante);
+
+        var box = document.getElementById('timer-box');
+        if (box) box.classList.remove('timer-finished');
+        actualizarBarraProgresoFondo();
+    }
+
+    cerrarPickerTiempo();
+}
+
+function formatearTiempoMMSS(segundosTotales) {
+    var min = Math.floor(segundosTotales / 60);
+    var seg = segundosTotales % 60;
+    return (min < 10 ? "0" : "") + min + ":" + (seg < 10 ? "0" : "") + seg;
+}
+
+function toggleTemporizador() {
+    if (timerTerminado) {
+        detenerTemporizador();
+        reiniciarTemporizador();
+        return;
+    }
+
+    obtenerContextoAudio();
+
+    var btn = document.getElementById('btn-start-timer');
+    var box = document.getElementById('timer-box');
+
+    if (timerEnEjecucion) {
+        detenerTemporizador();
+        if (btn) btn.innerText = idiomaActual === 'es' ? "Reanudar" : (idiomaActual === 'fr' ? "Reprendre" : "Resume");
+    } else {
+        if (timerTiempoRestante <= 0) return;
+        timerEnEjecucion = true;
+        if (btn) btn.innerText = idiomaActual === 'es' ? "Pausar" : (idiomaActual === 'fr' ? "Pause" : "Pause");
+        if (box) box.classList.add('timer-running');
+        
+        timerInterval = setInterval(function() {
+            if (timerTiempoRestante > 0) {
+                timerTiempoRestante--;
+                var display = document.getElementById('timer-display');
+                if (display) display.innerText = formatearTiempoMMSS(timerTiempoRestante);
+                actualizarBarraProgresoFondo();
+            } else {
+                detenerTemporizador();
+                alertaTemporizadorCumplido();
+            }
+        }, 1000);
+    }
+}
+
+function detenerTemporizador() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+    timerEnEjecucion = false;
+    var btn = document.getElementById('btn-start-timer');
+    var box = document.getElementById('timer-box');
+    if (btn) btn.innerText = idiomaActual === 'es' ? "Iniciar" : (idiomaActual === 'fr' ? "Démarrer" : "Start");
+    if (box) {
+        box.classList.remove('timer-running');
+        box.classList.remove('timer-finished');
+    }
+}
+
+function reiniciarTemporizador() {
+    detenerTemporizador();
+    timerTerminado = false;
+    timerTiempoTotal = timerTiempoSugeridoInicial;
+    timerTiempoRestante = timerTiempoSugeridoInicial;
+    
+    var display = document.getElementById('timer-display');
+    if (display) display.innerText = formatearTiempoMMSS(timerTiempoRestante);
+    var box = document.getElementById('timer-box');
+    if (box) box.classList.remove('timer-finished');
+    actualizarBarraProgresoFondo();
+}
+
+function alertaTemporizadorCumplido() {
+    timerTerminado = true;
+    var box = document.getElementById('timer-box');
+    if (box) {
+        box.classList.remove('timer-running');
+        box.classList.add('timer-finished');
+        box.style.backgroundImage = 'none';
+    }
+    var display = document.getElementById('timer-display');
+    if (display) display.innerText = idiomaActual === 'es' ? "¡Tiempo cumplido! 🔔" : (idiomaActual === 'fr' ? "Temps écoulé ! 🔔" : "Time's up! 🔔");
+
+    try {
+        var ctx = obtenerContextoAudio();
+        var ahora = ctx.currentTime;
+
+        [0, 0.25, 0.5].forEach(function(offset) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ahora + offset);
+            osc.frequency.exponentialRampToValueAtTime(440, ahora + offset + 0.2);
+
+            gain.gain.setValueAtTime(0.3, ahora + offset);
+            gain.gain.exponentialRampToValueAtTime(0.01, ahora + offset + 0.2);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(ahora + offset);
+            osc.stop(ahora + offset + 0.2);
+        });
+    } catch(e) {}
+}
+
+function renderizarPaso() {
+    var datosPaso = pasosActivos[pasoActual];
+    var numeroPasoReal = pasoActual + 1;
+    var totalPasos = pasosActivos.length;
+
+    var lblEtiqueta = document.getElementById('etiqueta-paso');
+    var lblTitulo = document.getElementById('titulo-paso');
+    var lblDesc = document.getElementById('desc-paso');
+    var lblMetodo = document.getElementById('metodo-paso');
+
+    lblEtiqueta.classList.remove('text-animate-up');
+    lblTitulo.classList.remove('text-animate-up');
+    lblDesc.classList.remove('text-animate-up');
+    lblMetodo.classList.remove('text-animate-up');
+
+    lblEtiqueta.innerText = idiomaActual === 'es' ? "PASO " + numeroPasoReal : (idiomaActual === 'fr' ? "ÉTAPE " + numeroPasoReal : "STEP " + numeroPasoReal);
+    lblTitulo.innerText = datosPaso.titulo[idiomaActual] || datosPaso.titulo['es'];
+    var descTextoHTML = datosPaso.descripcion();
+    lblDesc.innerHTML = descTextoHTML;
+    document.getElementById('imagen-paso').innerHTML = datosPaso.textoImagen();
+    lblMetodo.innerText = datosPaso.metodo[idiomaActual] || datosPaso.metodo['es'];
+
+    void lblEtiqueta.offsetWidth; 
+    void lblTitulo.offsetWidth;
+    void lblDesc.offsetWidth;
+    void lblMetodo.offsetWidth;
+
+    lblEtiqueta.classList.add('text-animate-up');
+    lblTitulo.classList.add('text-animate-up');
+    lblDesc.classList.add('text-animate-up');
+    lblMetodo.classList.add('text-animate-up');
+
+    document.getElementById('texto-progreso').innerText = numeroPasoReal + "/" + totalPasos;
+
+    var porcentaje = (numeroPasoReal / totalPasos) * 100;
+    document.getElementById('barra-progreso').style.width = porcentaje + "%";
+
+    var btnSiguiente = document.getElementById('btn-siguiente-paso');
+    if (numeroPasoReal === totalPasos) {
+        btnSiguiente.innerText = idiomaActual === 'es' ? "Terminar Receta" : (idiomaActual === 'fr' ? "Terminer la Recette" : "Finish Recipe");
+    } else {
+        btnSiguiente.innerText = idiomaActual === 'es' ? "Siguiente Paso" : (idiomaActual === 'fr' ? "Étape Suivante" : "Next Step");
+    }
+
+    evaluarYTemporizadorPaso(descTextoHTML);
+}
+
+function siguientePaso() {
+    detenerTemporizador();
+    if (pasoActual < pasosActivos.length - 1) {
+        pasoActual++;
+        renderizarPaso();
+    } else {
+        document.getElementById('lbl-final-title').innerText = idiomaActual === 'es' ? "¡Todo un Logro!" : (idiomaActual === 'fr' ? "C'est una Réussite !" : "Quite an Achievement!");
+        document.getElementById('desc-final').innerText = idiomaActual === 'es' 
+        ? "Nuestra receta de " + (preparandoChimichurri ? "chimichurri casero" : preparandoPatacon ? "patacón pisao" : preparandoAji ? "ají casero" : recetaElegida.toLowerCase()) + " hecha en tu Fogón quedó espectacular. ¡A disfrutar!"
+        : "Our " + (preparandoChimichurri ? "homemade chimichurri" : preparandoPatacon ? "smashed plantain" : preparandoAji ? "homemade ají" : recetaElegida.toLowerCase()) + " recipe made on your Fogón came out amazing. Enjoy!";
+        irPantalla('screen-final');
+    }
+}
+
+function pasoAnterior() {
+    detenerTemporizador();
+    if (pasoActual > 0) {
+        pasoActual--;
+        renderizarPaso();
+    } else {
+        irPantalla('screen-receta');
+    }
+}
+
+function regresarAPasosFin(event) {
+    if (event) event.stopPropagation();
+    if (preparandoAji) {
+        pasosActivos = pasosAji;
+    } else if (preparandoPatacon) {
+        pasosActivos = pasosPatacon;
+    } else if (preparandoChimichurri) {
+        pasosActivos = pasosChimichurri;
+    } else if (recetaElegida === "Cocadas Colombianas") {
+        pasosActivos = pasosCocadas;
+    } else if (recetaElegida === "Coctel de Camarones") {
+        pasosActivos = pasosCoctel;
+    } else if (recetaElegida === "Bandeja Paisa") {
+        pasosActivos = pasosBandeja;
+    } else if (recetaElegida === "Arroz con Leche") {
+        pasosActivos = pasosArroz;
+    } else if (recetaElegida === "Ajiaco Santafereño") {
+        pasosActivos = pasosAjiaco;
+    } else if (recetaElegida === "Papa Rellena") {
+        pasosActivos = pasosPapaRellena;
+    } else if (recetaElegida === "Postre Tres Leches") {
+        pasosActivos = pasosTresLeches;
+    } else {
+        pasosActivos = (recetaElegida === "Sancocho Tradicional") ? pasosSancocho : pasosEmpanadas;
+    }
+    pasoActual = pasosActivos.length - 1;
+    irPantalla('screen-pasos');
+    renderizarPaso();
+}
+
+function reiniciarApp() {
+    detenerTemporizador();
+    porcionesElegidas = 0;
+    preparandoAji = false;
+    preparandoPatacon = false;
+    preparandoChimichurri = false;
+    document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+    document.getElementById('btn-mas').innerText = '+';
+    actualizarPreviewPersonas(0);
+    proteinaElegida = "";
+    document.querySelectorAll('.proteina-card').forEach(function(card) { card.classList.remove('selected'); });
+    irPantalla('screen-inicio');
+}
+
+function getProteinaKey() {
+    if (!proteinaElegida) return "";
+    var protLC = proteinaElegida.toLowerCase();
+    if (protLC.includes('pollo')) return "";
+    if (protLC.includes('carne') || protLC.includes('res')) return "-res";
+    if (protLC.includes('cerdo')) return "-cerdo";
+    if (protLC.includes('pescado')) return "-pescado";
+    if (protLC.includes('vegetales')) return "-vegetales";
+    return "";
+}
+
+var botonPromptActivo = null;
+
+function pedirPorciones(elementoBtn, event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    botonPromptActivo = elementoBtn;
+    document.getElementById('prompt-titulo').innerText = idiomaActual === 'es' ? "¿Para cuántas personas cocinarás?" : (idiomaActual === 'fr' ? "Pour combien de personnes ?" : "How many people will you cook for?");
+    document.getElementById('input-prompt-cantidad').value = porcionesElegidas > 0 ? porcionesElegidas : "";
+    document.getElementById('custom-prompt').style.display = 'flex';
+
+    setTimeout(function() {
+        var input = document.getElementById('input-prompt-cantidad');
+        if (input) { input.focus(); input.select(); }
+    }, 100);
+}
+
+function cerrarPrompt(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    document.getElementById('custom-prompt').style.display = 'none';
+    botonPromptActivo = null;
+}
+
+function aceptarPrompt(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    var input = document.getElementById('input-prompt-cantidad');
+    var textCantidad = parseInt(input.value); 
+    if (!isNaN(textCantidad) && textCantidad > 0) {
+        porcionesElegidas = textCantidad;
+        document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+
+        var btnMas = document.getElementById('btn-mas');
+        if (btnMas) { btnMas.classList.add('selected'); btnMas.innerText = textCantidad; }
+        actualizarPreviewPersonas(porcionesElegidas);
+        cerrarPrompt();
+    } else {
+        var alertMsg = idiomaActual === 'es' ? "Por favor, ingresa un número válido mayor a 0." : "Please enter a valid number greater than 0.";
+        var alertTitle = idiomaActual === 'es' ? "Dato Inválido" : "Invalid Data";
+        mostrarAlerta(alertMsg, alertTitle);
+    }
+}
+
+function irPantalla(idPantalla) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById(idPantalla).classList.add('active');
+}
+
+function actualizarPreviewPersonas(cantidad) {
+    var contenedor = document.getElementById('preview-personas');
+    if (!contenedor) return;
+    contenedor.innerHTML = "";
+    var emojiIcon = (recetaElegida === "Sancocho Tradicional") ? "🍲" : (recetaElegida === "Empanadas Crujientes") ? "🥟" : (recetaElegida === "Coctel de Camarones") ? "🍤" : (recetaElegida === "Bandeja Paisa") ? "🍳" : (recetaElegida === "Arroz con Leche") ? "🍚" : (recetaElegida === "Ajiaco Santafereño") ? "🍲" : (recetaElegida === "Papa Rellena") ? "🥔" : (recetaElegida === "Postre Tres Leches") ? "🍰" : "🥥";
+
+    if (cantidad === 0) {
+        contenedor.innerHTML = "<span class='emoji-persona'>🍽️</span>";
+    } else if (cantidad <= 10) {
+        for (var i = 0; i < cantidad; i++) {
+            var span = document.createElement('span');
+            span.className = 'emoji-persona';
+            span.innerText = emojiIcon;
+            span.style.animationDelay = (i * 0.03) + "s";
+            contenedor.appendChild(span);
+        }
+    } else {
+        contenedor.innerHTML = '<span class="emoji-persona" style="font-size: 38px;">' + emojiIcon + '</span><span style="font-size: 28px; font-weight: 700; color: #2C422C; margin-left: 6px; animation: sombreritoSaltarin 0.5s ease-out;">x' + cantidad + '</span>';
+    }
+}
+
+function validarPorciones() {
+    if (porcionesElegidas === 0) {
+        var msg = idiomaActual === 'es' ? "Por favor, selecciona para cuántas personas vas a cocinar hoy." : "Please select how many people you are cooking for today.";
+        var title = idiomaActual === 'es' ? "Faltan Porciones" : "Missing Portions";
+        mostrarAlerta(msg, title);
+    } else {
+        if (recetaElegida === "Cocadas Colombianas" || recetaElegida === "Coctel de Camarones" || recetaElegida === "Bandeja Paisa" || recetaElegida === "Arroz con Leche" || recetaElegida === "Ajiaco Santafereño" || recetaElegida === "Postre Tres Leches") {
+            generarReceta();
+        } else {
+            irPantalla('screen-proteina');
+        }
+    }
+}
+
+function validarProteina() {
+    if (proteinaElegida === "") {
+        var msg = idiomaActual === 'es' ? "Por favor, selecciona una proteína para continuar." : "Please select a protein to continue.";
+        var title = idiomaActual === 'es' ? "Falta Proteína" : "Missing Protein";
+        mostrarAlerta(msg, title);
+    } else {
+        generarReceta();
+    }
+}
+
+function precargarPortadas() {
+    var portadas = ['portada-sancocho.webp', 'portada-empanadas.webp', 'portada-cocadas.webp', 'portada-coctel.webp', 'portada-bandeja.webp', 'portada-arroz.webp', 'portada-ajiaco.webp', 'portada-papa-rellena.webp', 'portada-tres-leches.webp'];
+    portadas.forEach(function(src) {
+        var img = new Image();
+        img.decoding = 'async';
+        img.src = src;
+    });
+}
+
+function precargarPasosReceta() {
+    var imagenes = [];
+    if (recetaElegida === "Sancocho Tradicional") {
+        imagenes = ['tuberculos-paso4.webp', 'cilantro-paso5.webp'];
+    } else if (recetaElegida === "Empanadas Crujientes") {
+        imagenes = ['aji-paso1.webp', 'aji-paso2.webp'];
+    } else if (recetaElegida === "Cocadas Colombianas") {
+        imagenes = ['cocadas-paso1.webp', 'cocadas-paso2.webp', 'cocadas-paso3.webp', 'cocadas-paso4.webp', 'cocadas-paso5.webp'];
+    } else if (recetaElegida === "Coctel de Camarones") {
+        imagenes = ['coctel-paso1.webp', 'coctel-paso2.webp', 'coctel-paso3.webp', 'coctel-paso4.webp', 'patacon-paso1.webp', 'patacon-paso2.webp', 'patacon-paso3.webp', 'patacon-paso4.webp'];
+    } else if (recetaElegida === "Bandeja Paisa") {
+        imagenes = ['bandeja-paso1.webp', 'bandeja-paso2.webp', 'bandeja-paso3.webp', 'bandeja-paso4.webp', 'bandeja-paso5.webp'];
+    } else if (recetaElegida === "Arroz con Leche") {
+        imagenes = ['arroz-paso1.webp', 'arroz-paso2.webp', 'arroz-paso3.webp', 'arroz-paso4.webp', 'arroz-paso5.webp'];
+    } else if (recetaElegida === "Ajiaco Santafereño") {
+        imagenes = ['ajiaco-paso1.webp', 'ajiaco-paso2.webp', 'ajiaco-paso3.webp', 'ajiaco-paso4.webp', 'ajiaco-paso5.webp'];
+    } else if (recetaElegida === "Papa Rellena") {
+        imagenes = ['papa-rellena-paso1.webp', 'papa-rellena-paso2.webp', 'papa-rellena-paso3.webp', 'papa-rellena-paso4.webp', 'chimichurri-paso1.webp', 'chimichurri-paso2.webp', 'chimichurri-paso3.webp'];
+    } else if (recetaElegida === "Postre Tres Leches") {
+        imagenes = ['tresleches-paso1.webp', 'tresleches-paso2.webp', 'tresleches-paso3.webp', 'tresleches-paso4.webp', 'tresleches-paso5.webp'];
+    }
+
+    setTimeout(function() {
+        imagenes.forEach(function(src) {
+            var img = new Image();
+            img.decoding = 'async';
+            img.src = src;
+        });
+    }, 100);
+}
+
+window.addEventListener("keydown", function(e) {
+    if (document.getElementById('custom-modal').style.display === 'flex') {
+        if (e.key === "Enter" || e.key === "Escape" || e.key === "Esc") { e.preventDefault(); cerrarAlerta(); }
+        return;
+    }
+
+    if (document.getElementById('custom-upsell').style.display === 'flex') {
+        if (e.key === "Enter") { e.preventDefault(); intentarUpgrade(); } 
+        else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); cerrarUpsell(); }
+        return;
+    }
+
+    if (document.getElementById('custom-prompt').style.display === 'flex') {
+        if (e.key === "Enter") { e.preventDefault(); aceptarPrompt(); } 
+        else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); cerrarPrompt(); }
+        return;
+    }
+
+    if (document.getElementById('modal-timer-picker').style.display === 'flex') {
+        if (e.key === "Enter") { e.preventDefault(); guardarTiempoPicker(); }
+        else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); cerrarPickerTiempo(); }
+        return;
+    }
+
+    if (e.key === "Enter") {
+        if (document.getElementById('screen-pin').classList.contains('active')) {
+            e.preventDefault();
+            verificarPIN();
+            return;
+        }
+        var btnPrimary = document.querySelector(".screen.active .btn-primary");
+        if (btnPrimary) { e.preventDefault(); btnPrimary.click(); }
+    }
+
+    if (e.key === "Escape" || e.key === "Esc") {
+        var btnBack = document.querySelector(".screen.active .btn-back");
+        if (btnBack) {
+            e.preventDefault();
+            btnBack.click();
+        } else if (document.getElementById("screen-final").classList.contains("active")) {
+            e.preventDefault();
+            reiniciarApp();
+        }
+    }
+});
+
+document.addEventListener("click", function(e) {
+    if (e.target.closest('.modal-overlay') || e.target.closest('.modal-card')) return;
+    if (document.getElementById('custom-modal').style.display === 'flex' || document.getElementById('custom-prompt').style.display === 'flex' || document.getElementById('custom-upsell').style.display === 'flex' || document.getElementById('modal-timer-picker').style.display === 'flex') return;
+
+    if (document.getElementById('screen-personas').classList.contains('active')) {
+        if (!e.target.closest('.opcion-btn') && !e.target.closest('.btn-primary') && !e.target.closest('.btn-back') && !e.target.closest('.lang-container') && !e.target.closest('.lang-btn')) {
+            porcionesElegidas = 0;
+            document.querySelectorAll('.opcion-btn').forEach(function(btn) { btn.classList.remove('selected'); });
+            document.getElementById('btn-mas').innerText = '+';
+            actualizarPreviewPersonas(0);
+        }
+    }
+
+    if (document.getElementById('screen-proteina').classList.contains('active')) {
+        if (!e.target.closest('.proteina-card') && !e.target.closest('.btn-primary') && !e.target.closest('.btn-back')) {
+            proteinaElegida = "";
+            document.querySelectorAll('.proteina-card').forEach(function(card) { card.classList.remove('selected'); });
+        }
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    precargarPortadas(); 
+    actualizarPreviewPersonas(0); 
+    document.getElementById('desc-paso').addEventListener('click', function(e) {
+        if (e.target.tagName === 'STRONG') e.target.classList.toggle('chip-checked');
+    });
+});
