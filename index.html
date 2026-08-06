@@ -35,7 +35,7 @@
             background-size: 100% 100%, 320px; 
             background-repeat: no-repeat, repeat;
             height: 100vh; height: 100dvh; max-height: 840px;
-            padding: 24px; box-sizing: border-box; position: relative;
+            padding: 16px 18px 24px 18px; box-sizing: border-box; position: relative;
             box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-radius: 32px;
             overflow-y: auto; display: flex; flex-direction: column;
         }
@@ -47,16 +47,16 @@
             .app-container {
                 max-width: 100%; height: 100vh; height: 100dvh; max-height: 100dvh;
                 border-radius: 0; box-shadow: none;
-                padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-                padding-top: calc(16px + env(safe-area-inset-top)); overflow: hidden;
+                padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+                padding-top: calc(10px + env(safe-area-inset-top)); overflow: hidden;
             }
-            h1 { font-size: 24px !important; }
-            h2 { font-size: 20px !important; margin-bottom: 10px !important; }
-            p { font-size: 14px !important; line-height: 1.5 !important; margin-bottom: 10px !important; }
-            #screen-pasos .img-placeholder { height: 18vh !important; max-height: 145px !important; min-height: 100px !important; }
-            .card-ui { margin-bottom: 12px !important; }
-            .step-header { margin-bottom: 12px !important; }
-            .btn-primary { padding: 14px !important; font-size: 15px !important; margin-top: auto; }
+            h1 { font-size: 23px !important; }
+            h2 { font-size: 19px !important; margin-bottom: 8px !important; }
+            p { font-size: 13.5px !important; line-height: 1.4 !important; margin-bottom: 8px !important; }
+            #screen-pasos .img-placeholder { height: 17vh !important; max-height: 140px !important; min-height: 95px !important; }
+            .card-ui { margin-bottom: 10px !important; }
+            .step-header { margin-bottom: 10px !important; }
+            .btn-primary { padding: 10px 12px !important; font-size: 13.5px !important; margin-top: auto; }
         }
 
         .screen { display: none; opacity: 0; transform: translateY(16px) scale(0.99); width: 100%; height: 100%; box-sizing: border-box; position: relative; z-index: 1; }
@@ -64,120 +64,146 @@
         .screen.active::-webkit-scrollbar { display: none; }
         @keyframes screenIn { to { opacity: 1; transform: translateY(0) scale(1); } }
         
-        h1 { font-size: 28px; font-weight: 700; color: #1C281C; margin: 0 0 8px 0; line-height: 1.2; }
-        h2 { font-size: 22px; font-weight: 600; color: #1C281C; margin: 0 0 16px 0; line-height: 1.3; }
-        h3 { color: #5B6B5B; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
-        p { color: #6E756E; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0; }
+        h1 { font-size: 26px; font-weight: 700; color: #1C281C; margin: 0 0 6px 0; line-height: 1.2; }
+        h2 { font-size: 20px; font-weight: 600; color: #1C281C; margin: 0 0 12px 0; line-height: 1.25; }
+        h3 { color: #5B6B5B; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+        p { color: #6E756E; font-size: 14px; line-height: 1.5; margin: 0 0 12px 0; }
         
         .btn-primary {
-            width: 100%; padding: 16px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 18px;
-            font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px rgba(44, 66, 44, 0.15);
+            width: 100%; padding: 10px 14px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 14px;
+            font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(44, 66, 44, 0.15);
             transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); text-align: center; box-sizing: border-box; flex-shrink: 0;
             text-decoration: none; display: inline-block;
         }
-        .btn-primary:hover { background-color: #3B593B; box-shadow: 0 10px 24px rgba(59, 89, 59, 0.3); transform: translateY(-2px); }
+        .btn-primary:hover { background-color: #3B593B; box-shadow: 0 6px 18px rgba(59, 89, 59, 0.3); transform: translateY(-1px); }
         .btn-primary:active { transform: scale(0.97) translateY(0); }
 
         .btn-secondary {
-            width: 100%; padding: 14px; background-color: #E5E0D5; color: #2C422C; border: 1.5px solid #2C422C; border-radius: 18px;
-            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-align: center; box-sizing: border-box; flex-shrink: 0;
-            margin-top: 10px; text-decoration: none; display: inline-block;
+            width: 100%; padding: 9px 12px; background-color: #E5E0D5; color: #2C422C; border: 1.5px solid #2C422C; border-radius: 14px;
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-align: center; box-sizing: border-box; flex-shrink: 0;
+            margin-top: 4px; text-decoration: none; display: inline-block;
         }
         .btn-secondary:hover { background-color: #D8D2C5; transform: translateY(-1px); }
 
-        /* BOTÓN DEMO DESTACADO Y ANIMADO CON DESTELLO Y LATIDO */
+        /* BOTÓN DEMO DESTACADO CON GLOW Y SACUDIDA PERIÓDICA */
         .btn-demo-animated {
             background: linear-gradient(135deg, #F1F5F1 0%, #E2ECE2 100%) !important;
-            border: 2px solid #2C422C !important;
+            border: 1.5px solid #2C422C !important;
             color: #2C422C !important;
             font-weight: 700 !important;
+            padding: 9px 12px !important;
+            font-size: 13px !important;
             margin-top: 0 !important;
             position: relative;
-            overflow: hidden;
-            animation: demoPulse 2s infinite ease-in-out;
+            animation: demoGlow 2.5s infinite ease-in-out, demoShake 4s infinite ease-in-out;
         }
 
-        .btn-demo-animated::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -60%;
-            width: 25%;
-            height: 200%;
-            background: linear-gradient(
-                to right,
-                rgba(255, 255, 255, 0) 0%,
-                rgba(255, 255, 255, 0.8) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
-            transform: rotate(30deg);
-            animation: demoShine 3s infinite ease-in-out;
-        }
-
-        @keyframes demoPulse {
+        @keyframes demoGlow {
             0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 4px 12px rgba(44, 66, 44, 0.12);
+                box-shadow: 0 0 5px rgba(44, 66, 44, 0.2), 0 3px 8px rgba(44, 66, 44, 0.1);
+                border-color: #2C422C;
             }
             50% {
-                transform: scale(1.025);
-                box-shadow: 0 8px 22px rgba(44, 66, 44, 0.25);
+                box-shadow: 0 0 14px rgba(67, 97, 67, 0.45), 0 0 22px rgba(67, 97, 67, 0.25);
+                border-color: #436143;
             }
         }
 
-        @keyframes demoShine {
-            0% { left: -60%; }
-            22%, 100% { left: 140%; }
+        @keyframes demoShake {
+            0%, 82%, 100% { transform: scale(1) rotate(0deg); }
+            85% { transform: scale(1.01) rotate(-1.5deg); }
+            88% { transform: scale(1.01) rotate(1.5deg); }
+            91% { transform: scale(1.01) rotate(-1deg); }
+            94% { transform: scale(1.01) rotate(1deg); }
+        }
+
+        /* ANIMACIONES INDIVIDUALES DE LOS ÍCONOS DE LOS BOTONES */
+        .ico-sparkle {
+            display: inline-block;
+            margin-right: 3px;
+            vertical-align: middle;
+            animation: sparklePulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes sparklePulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3) rotate(12deg); opacity: 1; }
+        }
+
+        .ico-sancocho {
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+            animation: potBounce 1.8s infinite ease-in-out;
+        }
+
+        @keyframes potBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .ico-cart {
+            display: inline-block;
+            margin-left: 4px;
+            vertical-align: middle;
+            animation: cartTilt 2.2s infinite ease-in-out;
+        }
+
+        @keyframes cartTilt {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            75% { transform: rotate(8deg); }
         }
 
         .btn-back {
-            background: #FFFFFF; border: 1px solid #E5E0D5; width: 44px; height: 44px; border-radius: 14px;
-            font-size: 16px; font-weight: 600; color: #2C422C; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            background: #FFFFFF; border: 1px solid #E5E0D5; width: 40px; height: 40px; border-radius: 12px;
+            font-size: 15px; font-weight: 600; color: #2C422C; cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.02);
             display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0;
         }
         .btn-back:hover { background: #EFECE4; border-color: #3B593B; color: #3B593B; transform: scale(1.05); }
 
-        .card-ui { background: #FFFFFF; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.8); margin-bottom: 16px; position: relative; }
+        .card-ui { background: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(255,255,255,0.8); margin-bottom: 12px; position: relative; }
         .card-ui.locked-card { opacity: 0.85; border: 1.5px dashed #CBB7A5; }
 
         .img-placeholder {
-            width: 100%; height: 210px; background-color: #E5E0D5; border-radius: 20px; display: flex; align-items: center;
-            justify-content: center; color: #7A827A; font-style: italic; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.02); animation: pulseBg 2s infinite ease-in-out;
+            width: 100%; height: 180px; background-color: #E5E0D5; border-radius: 16px; display: flex; align-items: center;
+            justify-content: center; color: #7A827A; font-style: italic; overflow: hidden; box-shadow: inset 0 0 16px rgba(0,0,0,0.02); animation: pulseBg 2s infinite ease-in-out;
         }
         .img-placeholder img { width: 100% !important; height: 100% !important; object-fit: cover !important; display: block; }
-        #screen-pasos .img-placeholder { height: 175px; }
+        #screen-pasos .img-placeholder { height: 155px; }
 
-        .home-cards-container { display: flex; flex-direction: column; gap: 16px; margin: auto 0; padding: 8px 0; }
-        .home-cards-container .card-ui { display: flex; flex-direction: row; align-items: stretch; padding: 0 !important; margin-bottom: 0; min-height: 140px; cursor: pointer; background: transparent; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
-        .home-cards-container .card-ui:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 16px 36px rgba(44, 66, 44, 0.08); }
-        .home-cards-container .img-placeholder { width: 145px !important; height: auto !important; min-height: 100%; border-radius: 24px 0 0 24px !important; flex-shrink: 0; animation: none; border-right: none; background-color: #E5E0D5; }
-        .home-cards-container .card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left; padding: 18px 16px !important; background-color: #FFFFFF; border-radius: 0 24px 24px 0; border: 1px solid rgba(255,255,255,0.8); border-left: none; }
+        .home-cards-container { display: flex; flex-direction: column; gap: 12px; margin: auto 0; padding: 4px 0; }
+        .home-cards-container .card-ui { display: flex; flex-direction: row; align-items: stretch; padding: 0 !important; margin-bottom: 0; min-height: 125px; cursor: pointer; background: transparent; border: none; box-shadow: 0 8px 24px rgba(0,0,0,0.04); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .home-cards-container .card-ui:hover { transform: translateY(-2px) scale(1.015); box-shadow: 0 12px 28px rgba(44, 66, 44, 0.08); }
+        .home-cards-container .img-placeholder { width: 125px !important; height: auto !important; min-height: 100%; border-radius: 20px 0 0 20px !important; flex-shrink: 0; animation: none; border-right: none; background-color: #E5E0D5; }
+        .home-cards-container .card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left; padding: 12px 14px !important; background-color: #FFFFFF; border-radius: 0 20px 20px 0; border: 1px solid rgba(255,255,255,0.8); border-left: none; }
 
         /* ESTILOS DE PANTALLA DE COMPRA */
-        .buy-cards-container { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
-        .buy-card { background: #FFFFFF; border-radius: 20px; padding: 20px; border: 1.5px solid #E5E0D5; box-shadow: 0 8px 20px rgba(0,0,0,0.03); transition: all 0.25s ease; position: relative; }
+        .buy-cards-container { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+        .buy-card { background: #FFFFFF; border-radius: 18px; padding: 16px; border: 1.5px solid #E5E0D5; box-shadow: 0 6px 16px rgba(0,0,0,0.03); transition: all 0.25s ease; position: relative; }
         .buy-card.featured { border: 2px solid #2C422C; background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F1 100%); }
-        .buy-badge { position: absolute; top: -10px; right: 16px; background: #2C422C; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .buy-card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-        .buy-card-title { font-size: 18px; font-weight: 700; color: #1C281C; }
-        .buy-card-price { font-size: 22px; font-weight: 700; color: #2C422C; }
-        .buy-card-price span { font-size: 12px; color: #6E756E; font-weight: 500; }
-        .buy-features { list-style: none; padding: 0; margin: 12px 0 16px 0; }
-        .buy-features li { font-size: 13px; color: #5B6B5B; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .buy-badge { position: absolute; top: -9px; right: 14px; background: #2C422C; color: #FFFFFF; font-size: 9.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .buy-card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+        .buy-card-title { font-size: 16px; font-weight: 700; color: #1C281C; }
+        .buy-card-price { font-size: 20px; font-weight: 700; color: #2C422C; }
+        .buy-card-price span { font-size: 11px; color: #6E756E; font-weight: 500; }
+        .buy-features { list-style: none; padding: 0; margin: 8px 0 12px 0; }
+        .buy-features li { font-size: 12px; color: #5B6B5B; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
 
-        .grid-porciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: auto 0; padding: 10px 0; justify-items: center; }
-        .opcion-btn { background-color: #FFFFFF; border: 1.5px solid #E5E0D5; width: 100%; max-width: 76px; aspect-ratio: 1; border-radius: 50%; font-size: 20px; font-weight: 600; color: #2C422C; cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; align-items: center; justify-content: center; padding: 0; }
-        .opcion-btn:hover { border-color: #3B593B; background-color: #EFECE4; transform: scale(1.08); }
+        .grid-porciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: auto 0; padding: 8px 0; justify-items: center; }
+        .opcion-btn { background-color: #FFFFFF; border: 1.5px solid #E5E0D5; width: 100%; max-width: 68px; aspect-ratio: 1; border-radius: 50%; font-size: 18px; font-weight: 600; color: #2C422C; cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; align-items: center; justify-content: center; padding: 0; }
+        .opcion-btn:hover { border-color: #3B593B; background-color: #EFECE4; transform: scale(1.06); }
         .opcion-btn.selected { background-color: #2C422C; border-color: #2C422C; color: #FFFFFF; box-shadow: inset 0 0 0 3px #FFFFFF; font-weight: 700; }
         
-        #btn-mas { grid-column: span 3; max-width: 100%; aspect-ratio: auto; height: 50px; border-radius: 100px; border: 1.5px dashed #CBB7A5; background-color: rgba(255, 255, 255, 0.4); color: #5B6B5B; font-size: 22px; }
-        #btn-mas:hover { background-color: #EFECE4; border-color: #3B593B; transform: translateY(-2px); }
+        #btn-mas { grid-column: span 3; max-width: 100%; aspect-ratio: auto; height: 44px; border-radius: 100px; border: 1.5px dashed #CBB7A5; background-color: rgba(255, 255, 255, 0.4); color: #5B6B5B; font-size: 20px; }
+        #btn-mas:hover { background-color: #EFECE4; border-color: #3B593B; transform: translateY(-1px); }
         #btn-mas.selected { background-color: #2C422C; border-color: #2C422C; color: #FFFFFF; border-style: solid; box-shadow: inset 0 0 0 3px #FFFFFF; }
 
-        .preview-personas-container { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 70px; margin-top: 12px; padding: 10px; background: rgba(255, 255, 255, 0.3); border-radius: 16px; }
-        .emoji-persona { font-size: 26px; display: inline-block; transform-origin: bottom center; animation: sombreritoSaltarin 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .preview-personas-container { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 5px; min-height: 60px; margin-top: 8px; padding: 8px; background: rgba(255, 255, 255, 0.3); border-radius: 14px; }
+        .emoji-persona { font-size: 23px; display: inline-block; transform-origin: bottom center; animation: sombreritoSaltarin 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes sombreritoSaltarin { 0% { transform: scale(0) translateY(15px); opacity: 0; } 30% { transform: scale(1.3, 0.7) translateY(0); opacity: 1; } 65% { transform: scale(0.85, 1.35) translateY(-16px); } 85% { transform: scale(1.05, 0.95) translateY(2px); } 100% { transform: scale(1) translateY(0); opacity: 1; } }
 
+        /* PANTALLA PIN Y AJUSTE DE MÁRGENES */
         .pin-container { 
             text-align: center; 
             width: 100%; 
@@ -186,15 +212,15 @@
             align-items: center;
             justify-content: center;
             flex: 1;
-            padding: 10px 0;
+            padding: 0;
         }
 
         .app-logo-real {
-            width: 190px;
-            max-width: 75%;
+            width: 165px;
+            max-width: 65%;
             height: auto;
             display: block;
-            margin: 0 auto 12px auto;
+            margin: 0 auto 6px auto;
             filter: sepia(1) hue-rotate(85deg) saturate(1.8) brightness(0.42);
         }
 
@@ -203,25 +229,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 60px; 
-            height: 60px; 
-            margin: 0 auto 16px auto; 
+            width: 50px; 
+            height: 50px; 
+            margin: 0 auto 8px auto; 
         }
-        .pot-emoji { font-size: 50px; display: inline-block; animation: potBoilRumble 0.22s infinite linear; }
+        .pot-emoji { font-size: 42px; display: inline-block; animation: potBoilRumble 0.22s infinite linear; }
         .pot-steam { position: absolute; background: rgba(110, 120, 110, 0.55); border-radius: 50%; filter: blur(3px); opacity: 0; animation: potRisingSteam 1.8s infinite ease-out; }
-        .ps1 { width: 14px; height: 14px; bottom: 40px; left: 8px; animation-delay: 0s; }
-        .ps2 { width: 18px; height: 16px; bottom: 43px; left: 21px; animation-delay: 0.6s; }
-        .ps3 { width: 13px; height: 13px; bottom: 40px; left: 36px; animation-delay: 1.2s; }
+        .ps1 { width: 12px; height: 12px; bottom: 34px; left: 6px; animation-delay: 0s; }
+        .ps2 { width: 15px; height: 14px; bottom: 36px; left: 17px; animation-delay: 0.6s; }
+        .ps3 { width: 11px; height: 11px; bottom: 34px; left: 29px; animation-delay: 1.2s; }
 
         .pot-bubble { position: absolute; background: rgba(235, 120, 30, 0.8); border-radius: 50%; opacity: 0; animation: potSoupBubbles 1s infinite ease-in-out; }
-        .pb1 { width: 5px; height: 5px; top: 24px; left: 16px; animation-delay: 0s; }
-        .pb2 { width: 6px; height: 6px; top: 28px; left: 27px; background: rgba(245, 170, 20, 0.9); animation-delay: 0.3s; }
-        .pb3 { width: 4px; height: 4px; top: 22px; left: 38px; animation-delay: 0.6s; }
+        .pb1 { width: 4px; height: 4px; top: 20px; left: 13px; animation-delay: 0s; }
+        .pb2 { width: 5px; height: 5px; top: 23px; left: 22px; background: rgba(245, 170, 20, 0.9); animation-delay: 0.3s; }
+        .pb3 { width: 3px; height: 3px; top: 18px; left: 31px; animation-delay: 0.6s; }
 
-        .pot-interior-swirl { position: absolute; top: 20px; left: 13px; width: 34px; height: 18px; z-index: 3; animation: soupSpin 1.5s infinite linear; }
-        .soup-bit { position: absolute; font-size: 9px; line-height: 1; }
-        .sb1 { top: -2px; left: 4px; }   
-        .sb2 { bottom: -2px; right: 4px; } 
+        .pot-interior-swirl { position: absolute; top: 16px; left: 10px; width: 28px; height: 15px; z-index: 3; animation: soupSpin 1.5s infinite linear; }
+        .soup-bit { position: absolute; font-size: 8px; line-height: 1; }
+        .sb1 { top: -2px; left: 3px; }   
+        .sb2 { bottom: -2px; right: 3px; } 
 
         @keyframes potBoilRumble { 0% { transform: rotate(-1deg) translateY(0); } 50% { transform: rotate(1deg) translateY(-1px); } 100% { transform: rotate(-1deg) translateY(0); } }
         @keyframes potRisingSteam { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-30px) scale(1.5); opacity: 0; } }
@@ -230,25 +256,25 @@
         @keyframes pulseBg { 0%, 100% { background-color: #E5E0D5; } 50% { background-color: #ECE9E2; } }
 
         .pin-text-desc {
-            font-size: 13.5px; 
+            font-size: 12.5px; 
             color: #5B6B5B; 
-            margin: 0 auto 20px auto; 
-            line-height: 1.5; 
-            max-width: 290px;
+            margin: 0 auto 12px auto; 
+            line-height: 1.4; 
+            max-width: 270px;
             text-align: center;
         }
 
         .pin-input { 
-            font-size: 24px; 
-            padding: 14px; 
+            font-size: 21px; 
+            padding: 9px; 
             text-align: center; 
             width: 100%; 
-            max-width: 280px; 
-            border-radius: 18px; 
+            max-width: 250px; 
+            border-radius: 14px; 
             border: 1.5px solid #E5E0D5; 
             background: #FFFFFF; 
             box-sizing: border-box; 
-            letter-spacing: 6px; 
+            letter-spacing: 5px; 
             transition: all 0.2s ease; 
             color: #2C422C; 
             font-weight: 600; 
@@ -805,7 +831,7 @@
         .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(28, 40, 28, 0.45); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 9999; padding: 24px; box-sizing: border-box; border-radius: 32px; }
         .modal-card { background: #F4F1EA; border-radius: 24px; padding: 24px; text-align: center; width: 100%; max-width: 310px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18); border: 1px solid rgba(255, 255, 255, 0.7); animation: modalPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
         
-        .modal-btn { width: 100%; padding: 14px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
+        .modal-btn { width: 100%; padding: 10px; background-color: #2C422C; color: #FFFFFF; border: none; border-radius: 12px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
         .modal-btn:hover { background-color: #3B593B; }
     </style>
 </head>
@@ -828,10 +854,10 @@
             <div style="font-size: 38px; margin-bottom: 6px;" id="upsell-icon">👑</div>
             <h4 id="upsell-titulo">Receta Exclusiva</h4>
             <p style="font-size: 13.5px; margin-bottom: 12px; color: #5B6B5B;" id="upsell-mensaje">Esta receta requiere un nivel superior. Ingresa tu nuevo PIN aquí para desbloquearla:</p>
-            <input type="password" id="input-pin-upgrade" class="pin-input" placeholder="••••" maxlength="4" style="font-size: 20px; padding: 10px; max-width: 160px; margin-top: 0; margin-bottom: 14px;">
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="password" id="input-pin-upgrade" class="pin-input" placeholder="••••" maxlength="4" style="font-size: 18px; padding: 6px; max-width: 140px; margin-top: 0; margin-bottom: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
                 <button type="button" class="modal-btn" onclick="intentarUpgrade(event)">Desbloquear Recetas ✨</button>
-                <button type="button" class="modal-btn" style="background-color: transparent; color: #6E756E; box-shadow: none; font-weight: 500; font-size: 13px;" onclick="cerrarUpsell(event)">Regresar</button>
+                <button type="button" class="modal-btn" style="background-color: transparent; color: #6E756E; box-shadow: none; font-weight: 500; font-size: 12px;" onclick="cerrarUpsell(event)">Regresar</button>
             </div>
         </div>
     </div>
@@ -840,8 +866,8 @@
         <div class="modal-card">
             <div style="font-size: 32px; margin-bottom: 8px;">🍽️</div>
             <h4 id="prompt-titulo">¿Cuántas personas?</h4>
-            <input type="number" id="input-prompt-cantidad" class="pin-input" style="font-size: 22px; padding: 12px; max-width: 140px; letter-spacing: normal; margin-top: 14px; margin-bottom: 20px;" min="1" max="99">
-            <div style="display: flex; gap: 12px;">
+            <input type="number" id="input-prompt-cantidad" class="pin-input" style="font-size: 20px; padding: 10px; max-width: 130px; letter-spacing: normal; margin-top: 12px; margin-bottom: 16px;" min="1" max="99">
+            <div style="display: flex; gap: 10px;">
                 <button type="button" class="modal-btn" style="background-color: #E5E0D5; color: #2C422C;" onclick="cerrarPrompt(event)">Cancelar</button>
                 <button type="button" class="modal-btn" onclick="aceptarPrompt(event)">Aceptar</button>
             </div>
@@ -896,6 +922,7 @@
         </div>
     </div>
 
+    <!-- PANTALLA PIN Y MODO DEMO CON ÍCONOS ANIMADOS -->
     <div id="screen-pin" class="screen active">
         <div class="pin-container">
             <img src="logo.png" alt="Fogón Logo" class="app-logo-real">
@@ -922,17 +949,17 @@
             <p id="error-pin" style="color: #B23B3B; font-size: 14px; font-weight: 500; margin-top: 12px; display: none;">⚠️ PIN incorrecto. Intenta de nuevo.</p>
         </div>
         
-        <div style="width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+        <div style="width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 4px;">
             <button type="button" class="btn-primary" onclick="verificarPIN()">Entrar a la App</button>
-            <button type="button" class="btn-secondary btn-demo-animated" onclick="iniciarDemo()">✨ 🍲 Probar Fogón Gratis (Sancocho)</button>
-            <button type="button" class="btn-secondary" style="margin-top: 0;" onclick="irAPaginaCompra()">Comprar Mi Recetario 🛒</button>
+            <button type="button" class="btn-secondary btn-demo-animated" onclick="iniciarDemo()"><span class="ico-sparkle">✨</span><span class="ico-sancocho">🍲</span> Probar Fogón Gratis (Sancocho)</button>
+            <button type="button" class="btn-secondary" style="margin-top: 0;" onclick="irAPaginaCompra()">Comprar Mi Recetario <span class="ico-cart">🛒</span></button>
         </div>
     </div>
 
     <div id="screen-inicio" class="screen">
         <div>
             <div class="top-nav-bar">
-                <button type="button" class="btn-cart-nav" onclick="irAPaginaCompra()" title="Comprar Recetario">🛒 Comprar</button>
+                <button type="button" class="btn-cart-nav" onclick="irAPaginaCompra()" title="Comprar Recetario"><span class="ico-cart">🛒</span> Comprar</button>
                 <div class="lang-container">
                     <button type="button" class="lang-btn active" id="btn-lang-es" onclick="cambiarIdioma('es')">
                         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 600'%3E%3Crect width='900' height='300' fill='%23FFCD00'/%3E%3Crect y='300' width='900' height='150' fill='%23003087'/%3E%3Crect y='450' width='900' height='150' fill='%23C8102E'/%3E%3C/svg%3E" alt="Colombia" class="lang-flag"> ES
