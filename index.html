@@ -856,7 +856,7 @@
         <div class="modal-card">
             <div style="font-size: 38px; margin-bottom: 6px;" id="upsell-icon">👑</div>
             <h4 id="upsell-titulo">Receta Exclusiva</h4>
-            <p style="font-size: 13.5px; margin-bottom: 12px; color: #5B6B5B;" id="upsell-mensaje">Esta receta requiere un nivel superior. Ingresa tu nuevo PIN aquí para desbloquearla:</p>
+            <p style="font-size: 13.5px; margin-bottom: 12px; color: #5B6B5B;" id="upsell-mensaje">Ingresa tu PIN único para desbloquear esta receta:</p>
             <input type="password" id="input-pin-upgrade" class="pin-input" placeholder="••••" maxlength="4" style="font-size: 18px; padding: 6px; max-width: 140px; margin-top: 0; margin-bottom: 10px;">
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <button type="button" class="modal-btn" onclick="intentarUpgrade(event)">Desbloquear Recetas ✨</button>
@@ -955,7 +955,7 @@
         <div style="width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 4px;">
             <button type="button" class="btn-primary" onclick="verificarPIN()">Entrar a la App</button>
             <button type="button" class="btn-secondary btn-demo-animated" onclick="iniciarDemo()"><span class="ico-sparkle">✨</span><span class="ico-sancocho">🍲</span> Probar Fogón Gratis (Sancocho)</button>
-            <button type="button" class="btn-secondary" style="margin-top: 0;" onclick="irAPaginaCompra()">Comprar Mi Recetario <span class="ico-cart">🛒</span></button>
+            <button type="button" class="btn-secondary" style="margin-top: 0;" onclick="irAPaginaCompra()">Obtener Acceso — $7 USD <span class="ico-cart">🛒</span></button>
         </div>
     </div>
 
@@ -979,7 +979,7 @@
             <!-- BANNER DE MODO DEMO -->
             <div id="demo-banner" style="display: none; background: #F1F5F1; border: 1.5px solid #2C422C; color: #2C422C; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 14px; margin-bottom: 12px; text-align: center; align-items: center; justify-content: space-between;">
                 <span>🎁 Modo Demo (Sancocho Gratis)</span>
-                <button type="button" style="background:none; border:none; color:#2C422C; font-weight:700; cursor:pointer; text-decoration:underline;" onclick="irAPaginaCompra()">Desbloquear All</button>
+                <button type="button" style="background:none; border:none; color:#2C422C; font-weight:700; cursor:pointer; text-decoration:underline;" onclick="irAPaginaCompra()">Desbloquear todo por $7</button>
             </div>
 
             <p style="color: #7A827A; font-weight: 500; font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;" id="lbl-ready">¡Listo para cocinar!</p>
@@ -1028,75 +1028,51 @@
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-coctel" onclick="elegirReceta('Coctel de Camarones', 'vip', event)">
+                <div class="card-ui" id="card-coctel" onclick="elegirReceta('Coctel de Camarones', 'normal', event)">
                     <div class="img-placeholder"><img src="portada-coctel.webp" alt="Coctel de Camarones" decoding="async" loading="lazy"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
                         <h2 id="lbl-title-coctel">Coctel de Camarones</h2>
                         <p id="lbl-desc-coctel">Fresquito, rosado y costeño con limón, cebolla y galleticas.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
-                        </div>
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-bandeja" onclick="elegirReceta('Bandeja Paisa', 'vip', event)">
+                <div class="card-ui" id="card-bandeja" onclick="elegirReceta('Bandeja Paisa', 'normal', event)">
                     <div class="img-placeholder"><img src="portada-bandeja.webp" alt="Bandeja Paisa" decoding="async" loading="lazy"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
                         <h2 id="lbl-title-bandeja">Bandeja Paisa</h2>
                         <p id="lbl-desc-bandeja">El plato insignia con frijolitos, chicharrón, huevo y tajada.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
-                        </div>
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-arroz" onclick="elegirReceta('Arroz con Leche', 'vip', event)">
+                <div class="card-ui" id="card-arroz" onclick="elegirReceta('Arroz con Leche', 'normal', event)">
                     <div class="img-placeholder" style="background-color: #D3C9BC; font-size: 32px;"><img src="portada-arroz.webp" alt="Arroz con Leche" decoding="async" loading="lazy" onerror="this.outerHTML='🍚'"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #B23B3B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">🔒 Nivel VIP</span>
                         <h2 id="lbl-title-arroz">Arroz con Leche</h2>
                         <p id="lbl-desc-arroz">Cremosito, dulce, con canela en rama y toque de leche condensada.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock">⭐ Edición VIP</span>
-                        </div>
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-ajiaco" onclick="elegirReceta('Ajiaco Santafereño', 'premium', event)">
+                <div class="card-ui" id="card-ajiaco" onclick="elegirReceta('Ajiaco Santafereño', 'normal', event)">
                     <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-ajiaco.webp" alt="Ajiaco Santafereño" decoding="async" loading="lazy" onerror="this.outerHTML='🍲'"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
                         <h2 id="lbl-title-ajiaco">Ajiaco Santafereño</h2>
                         <p id="lbl-desc-ajiaco">Sopa bogotana con 3 papas, pollo jugoso, guascas, alcaparras y crema.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
-                        </div>
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-paparellena" onclick="elegirReceta('Papa Rellena', 'premium', event)">
+                <div class="card-ui" id="card-paparellena" onclick="elegirReceta('Papa Rellena', 'normal', event)">
                     <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-papa-rellena.webp" alt="Papa Rellena" decoding="async" loading="lazy" onerror="this.outerHTML='🥔'"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
                         <h2 id="lbl-title-paparellena">Papa Rellena</h2>
                         <p id="lbl-desc-paparellena">Masa suave de papa crocante por fuera, con guiso jugoso y huevo.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
-                        </div>
                     </div>
                 </div>
 
-                <div class="card-ui locked-card" id="card-postretresleches" onclick="elegirReceta('Postre Tres Leches', 'premium', event)">
+                <div class="card-ui" id="card-postretresleches" onclick="elegirReceta('Postre Tres Leches', 'normal', event)">
                     <div class="img-placeholder" style="background-color: #C8BFB2; font-size: 32px;"><img src="portada-tres-leches.webp" alt="Postre Tres Leches" decoding="async" loading="lazy" onerror="this.outerHTML='🍰'"></div>
                     <div class="card-content">
-                        <span style="font-size: 10px; color: #7A2C2C; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px;">💎 Nivel Premium</span>
                         <h2 id="lbl-title-postretresleches">Postre Tres Leches</h2>
                         <p id="lbl-desc-postretresleches">Bizcochuelo húmedo y cremosito con el dulzor perfecto.</p>
-                        <div class="badge-group">
-                            <span class="recipe-badge badge-lock" style="background: #E6BE64; color: #2C422C;">💎 All-Access</span>
-                        </div>
                     </div>
                 </div>
 
@@ -1110,53 +1086,26 @@
         <div>
             <button type="button" class="btn-back" onclick="regresarDeCompra()">←</button>
             <div style="margin-top: 16px;">
-                <span style="color: #436143; font-weight: 700; font-size: 13px; text-transform: uppercase;">Consigue Tu Acceso</span>
-                <h2 style="margin-top: 4px;">Selecciona tu Nivel</h2>
-                <p style="font-size: 13.5px; color: #6E756E; margin-bottom: 12px;">Elige el plan ideal para desbloquear más recetas y ventajas exclusivas:</p>
+                <span style="color: #436143; font-weight: 700; font-size: 13px; text-transform: uppercase;">Acceso Único</span>
+                <h2 style="margin-top: 4px;">Todo el recetario, un solo pago</h2>
+                <p style="font-size: 13.5px; color: #6E756E; margin-bottom: 12px;">Desbloquea las 9 recetas con un único PIN de acceso.</p>
             </div>
 
             <div class="buy-cards-container">
-                <!-- NIVEL 1 BÁSICO -->
-                <div class="buy-card">
+                <!-- ACCESO ÚNICO $7 -->
+                <div class="buy-card featured">
+                    <span class="buy-badge">⭐ Acceso Completo</span>
                     <div class="buy-card-header">
-                        <span class="buy-card-title">Nivel 1 Básico</span>
+                        <span class="buy-card-title">Recetario Fogón</span>
                         <span class="buy-card-price">$7 <span>USD</span></span>
                     </div>
                     <ul class="buy-features">
-                        <li>✓ Recetario Básico (3 Recetas)</li>
+                        <li>✓ Las 9 recetas completas</li>
                         <li>✓ Calculadora inteligente de porciones</li>
-                        <li>✓ Guía de preparación e ingredientes</li>
+                        <li>✓ Guía paso a paso e ingredientes exactos</li>
+                        <li>✓ Un solo PIN de acceso</li>
                     </ul>
-                    <a href="https://pay.hotmart.com/T107035140V" target="_blank" class="btn-secondary" style="margin-top: 0;">Obtener Nivel 1</a>
-                </div>
-
-                <!-- NIVEL 2 VIP -->
-                <div class="buy-card featured">
-                    <span class="buy-badge">⭐ Recomendado</span>
-                    <div class="buy-card-header">
-                        <span class="buy-card-title">Nivel 2 VIP</span>
-                        <span class="buy-card-price">$12 <span>USD</span></span>
-                    </div>
-                    <ul class="buy-features">
-                        <li>✓ Todo lo del Nivel Básico</li>
-                        <li>✓ Desbloquea Coctel, Bandeja y Arroz</li>
-                        <li>✓ Entrega de clave de acceso VIP tras la compra</li>
-                    </ul>
-                    <a href="https://pay.hotmart.com/T107035140V?off=t0gt8bpb" target="_blank" class="btn-primary">Comprar Nivel 2 VIP</a>
-                </div>
-
-                <!-- NIVEL 3 PREMIUM -->
-                <div class="buy-card">
-                    <div class="buy-card-header">
-                        <span class="buy-card-title">Nivel 3 Premium</span>
-                        <span class="buy-card-price">$19 <span>USD</span></span>
-                    </div>
-                    <ul class="buy-features">
-                        <li>✓ Acceso Total (Las 9 Recetas)</li>
-                        <li>✓ Ajiaco, Papa Rellena y Tres Leches</li>
-                        <li>✓ Incluye PIN de Acceso Total + Material Extra</li>
-                    </ul>
-                    <a href="https://pay.hotmart.com/T107035140V?off=euikiitf" target="_blank" class="btn-secondary" style="margin-top: 0;">Obtener Acceso Total</a>
+                    <a href="https://pay.hotmart.com/T107035140V" target="_blank" class="btn-primary" style="margin-top: 0;">Obtener Acceso — $7 USD</a>
                 </div>
             </div>
         </div>
@@ -1290,7 +1239,7 @@
 </div>
 
 <!-- ENLACE DE SCRIPT CON CACHE BUSTING v3.0 -->
-<script src="recetas.js?v=3.0"></script>
+<script src="recetas.js?v=3.2"></script>
 
 </body>
 </html>

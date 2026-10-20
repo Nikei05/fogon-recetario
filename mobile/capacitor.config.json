@@ -1,0 +1,9 @@
+{
+  "appId": "com.fogon.recetario",
+  "appName": "Fogón",
+  "webDir": "www",
+  "backgroundColor": "#F4F1EA",
+  "android": {
+    "backgroundColor": "#F4F1EA"
+  }
+}
